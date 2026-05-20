@@ -270,9 +270,14 @@
     border-bottom: 1px solid var(--border-soft);
     display: flex;
     align-items: center;
+    justify-content: space-between;
+  }
+  .section-title-left {
+    display: flex;
+    align-items: center;
     gap: 8px;
   }
-  .section-title::before {
+  .section-title-left::before {
     content: '';
     width: 4px; height: 14px;
     background: var(--accent);
@@ -317,15 +322,6 @@
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: rgba(255,255,255,0.02); }
   td.muted { color: var(--text-muted); }
-  td .badge {
-    display: inline-block;
-    background: var(--accent-soft);
-    color: var(--accent);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
-  }
 
   /* ===== CARDS layout (for 2 columns) ===== */
   .two-col {
@@ -455,7 +451,7 @@
   }
   .modal-content {
     background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg);
-    width: 550px; max-width: 90%; padding: 22px; box-shadow: var(--shadow);
+    width: 600px; max-width: 90%; padding: 22px; box-shadow: var(--shadow);
   }
   .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-soft); padding-bottom: 10px; }
   .modal-header h3 { color: var(--accent); font-size: 15px; font-weight: 600; }
@@ -492,22 +488,7 @@
     </div>
 
     <nav class="nav" id="nav">
-      <div class="nav-section">Navegación</div>
-      <div class="nav-item active" data-target="home"><span class="nav-icon">🏠</span> Inicio</div>
-      <div class="nav-section">Altas</div>
-      <div class="nav-item" data-target="letrados"><span class="nav-icon">⚖️</span> Alta · Letrados</div>
-      <div class="nav-item" data-target="magistrados"><span class="nav-icon">🏛️</span> Alta · Magistrados</div>
-      <div class="nav-item" data-target="fiscales"><span class="nav-icon">📜</span> Alta · Fiscales</div>
-      <div class="nav-section">Aplicaciones</div>
-      <div class="nav-item" data-target="aplicaciones"><span class="nav-icon">📦</span> Aplicaciones</div>
-      <div class="nav-item" data-target="aplicacionesComunes"><span class="nav-icon">🌐</span> Aplicaciones Comunes</div>
-      <div class="nav-item" data-target="sharepoint"><span class="nav-icon">🗂️</span> SharePoint</div>
-      <div class="nav-section">Soporte</div>
-      <div class="nav-item" data-target="credenciales"><span class="nav-icon">🔑</span> Credenciales</div>
-      <div class="nav-item" data-target="tecnico"><span class="nav-icon">🛠️</span> Técnico</div>
-      <div class="nav-item" data-target="hcTelefonia"><span class="nav-icon">📞</span> HC y Telefonía</div>
-      <div class="nav-item" data-target="datosMinimos"><span class="nav-icon">📋</span> Datos Mínimos</div>
-    </nav>
+      </nav>
     <div class="sidebar-footer">Pulsa <code>Ctrl+K</code> para buscar</div>
   </aside>
 
@@ -560,7 +541,7 @@ let SEARCH_INDEX = [];
 let currentEditPage = null;
 let currentEditSection = null;
 let currentEditIndex = null;
-let currentEditType = null; // 'row', 'card', 'new_row', 'new_card'
+let currentEditType = null; // 'row', 'new_row', 'card', 'new_card', 'menu_manager', 'table_config'
 
 /* ============================================================
    INICIALIZACIÓN DE LA APLICACIÓN
@@ -573,12 +554,53 @@ async function initApp() {
       LOCAL_DATA[doc.id] = doc.data();
     });
     
+    // Si la db está vacía o falta 'home', creamos un esqueleto base seguro
+    if (!LOCAL_DATA['home']) {
+        LOCAL_DATA['home'] = { title: "Inicio", cards: [] };
+    }
+
     buildSearchIndex();
+    renderSidebar(); 
     renderPage('home');
   } catch (error) {
     console.error("Error crítico inicializando base de datos:", error);
     document.getElementById('content').innerHTML = '<div class="empty" style="color:var(--danger)">Error al conectar con la nube. Verifica la conexión o las reglas de Firebase.</div>';
   }
+}
+
+/* ============================================================
+   RENDERIZADO DEL MENÚ LATERAL DINÁMICO
+   ============================================================ */
+window.renderSidebar = function() {
+  const nav = document.getElementById('nav');
+  let html = `
+    <div class="nav-section">Navegación</div>
+    <div class="nav-item ${currentPage === 'home' ? 'active' : ''}" data-target="home">
+      <span class="nav-icon">🏠</span> Inicio
+    </div>
+    <div class="nav-section">Categorías Documentales</div>
+  `;
+  
+  const homeCards = LOCAL_DATA['home']?.cards || [];
+  
+  homeCards.forEach(c => {
+    html += `
+      <div class="nav-item ${currentPage === c.id ? 'active' : ''}" data-target="${c.id}">
+        <span class="nav-icon">${escapeHTML(c.icon)}</span> ${escapeHTML(c.title)}
+      </div>
+    `;
+  });
+  
+  nav.innerHTML = html;
+
+  nav.querySelectorAll('.nav-item').forEach(n => {
+    n.addEventListener('click', () => {
+      currentPage = n.dataset.target;
+      document.getElementById('searchInput').value = '';
+      renderPage(currentPage);
+      renderSidebar();
+    });
+  });
 }
 
 /* ============================================================
@@ -594,17 +616,21 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
   
   for (let i = 0; i < (rows || []).length; i++) {
     const rowObj = rows[i];
-    const rowArray = Object.values(rowObj); 
     
-    html += '<tr>' + rowArray.map(cell => {
-      const empty = cell === '' || cell === null || cell === undefined;
+    html += '<tr>';
+    // Iteramos basándonos en la longitud real de las cabeceras actuales
+    for (let j = 0; j < (headers || []).length; j++) {
+      let cell = rowObj[j] !== undefined ? rowObj[j] : '';
+      const empty = cell === '' || cell === null;
       let finalCell = linkify(cell);
+      
       if (cell === 'CHROME') finalCell = '<span class="pill chrome">CHROME</span>';
       else if (cell === 'EDGE') finalCell = '<span class="pill edge">EDGE</span>';
       else if (cell === 'EDGE/CHROME') finalCell = '<span class="pill chrome">EDGE/CHROME</span>';
       else if (cell === 'EDGE - MODO IE') finalCell = '<span class="pill edge">EDGE - MODO IE</span>';
-      return `<td${empty ? ' class="muted"' : ''}>${finalCell}</td>`;
-    }).join('');
+      
+      html += `<td${empty ? ' class="muted"' : ''}>${finalCell}</td>`;
+    }
 
     html += `
       <td style="text-align: right; vertical-align: middle; white-space: nowrap;">
@@ -615,9 +641,7 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
   }
   html += '</tbody></table></div>';
   
-  // Botón dinámico para añadir nueva fila a esta tabla específica
   html += `<button onclick="añadirFilaNueva('${pageKey}', ${sectionIndex})" style="background: transparent; border: 1px dashed var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 11px; margin-bottom: 14px; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px;">+ Añadir Fila</button>`;
-  
   return html;
 }
 
@@ -640,14 +664,9 @@ function renderCards(cards, pageKey, sectionIndex) {
   }
 
   let htmlCol1 = '';
-  for (let i = 0; i < col1.length; i++) {
-    htmlCol1 += createCardHtml(col1[i], i);
-  }
-  
+  for (let i = 0; i < col1.length; i++) htmlCol1 += createCardHtml(col1[i], i);
   let htmlCol2 = '';
-  for (let i = 0; i < col2.length; i++) {
-    htmlCol2 += createCardHtml(col2[i], mid + i);
-  }
+  for (let i = 0; i < col2.length; i++) htmlCol2 += createCardHtml(col2[i], mid + i);
 
   html = `<div class="two-col"><div>${htmlCol1}</div><div>${htmlCol2}</div></div>`;
   html += `<button onclick="añadirCardNueva('${pageKey}', ${sectionIndex})" style="background: transparent; border: 1px dashed var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 11px; margin-bottom: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px;">+ Añadir Tarjeta</button>`;
@@ -658,30 +677,49 @@ window.renderPage = function(key) {
   const page = LOCAL_DATA[key];
   if (!page) return;
   
-  document.getElementById('pageTitle').textContent = page.title;
+  document.getElementById('pageTitle').textContent = page.title || key;
   document.getElementById('pageMeta').textContent  = page.meta || '';
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.target === key));
 
   let html = '';
   if (key === 'home') {
-    html += `<div class="home-hero"><h2>Gestión IPC's de Magistrados</h2><p>Guía rápida de agente — Responsables del servicio, agentes de atención y soporte, técnicos de formación.</p></div>`;
+    html += `
+      <div class="home-hero">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <h2>Gestión IPC's de Magistrados</h2>
+            <p>Guía rápida de agente — Responsables del servicio, agentes de atención y soporte, técnicos de formación.</p>
+          </div>
+          <button onclick="gestionarMenu()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">⚙️ Administrar Categorías</button>
+        </div>
+      </div>`;
     html += '<div class="home-grid">';
-    for (const c of page.cards) {
+    for (const c of (page.cards || [])) {
       html += `<div class="home-card" data-target="${c.id}"><div class="home-card-icon">${c.icon}</div><h3>${escapeHTML(c.title)}</h3><p>${escapeHTML(c.desc)}</p></div>`;
     }
     html += '</div>';
     document.getElementById('content').innerHTML = html;
     document.querySelectorAll('.home-card').forEach(card => {
-      card.addEventListener('click', () => renderPage(card.dataset.target));
+      card.addEventListener('click', () => {
+        currentPage = card.dataset.target;
+        renderPage(currentPage);
+        renderSidebar();
+      });
     });
     return;
   }
 
   for (let s = 0; s < (page.sections || []).length; s++) {
     const sec = page.sections[s];
-    html += `<div class="section"><div class="section-title">${escapeHTML(sec.title)}</div>`;
+    html += `<div class="section">
+      <div class="section-title">
+        <span class="section-title-left">${escapeHTML(sec.title)}</span>
+        <button onclick="gestionarTabla('${key}', ${s})" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; opacity:0.6; transition:opacity 0.2s;" title="Modificar estructura de Tabla/Sección" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">⚙️ Configurar</button>
+      </div>`;
+    
     if (sec.type === 'table') html += renderTable(sec.headers, sec.rows, key, s);
     else if (sec.type === 'cards') html += renderCards(sec.cards, key, s);
+    
     html += '</div>';
   }
   
@@ -695,16 +733,68 @@ window.renderPage = function(key) {
 }
 
 /* ============================================================
-   LÓGICA ADMINISTRATIVA (EDITAR, ELIMINAR Y AÑADIR NUEVOS)
+   LÓGICA ADMINISTRATIVA (MODALES DE EDICIÓN)
    ============================================================ */
 const modal = document.getElementById('editModal');
 
 function abrirModal() { modal.style.display = 'flex'; }
 function cerrarModal() { modal.style.display = 'none'; }
-
 document.getElementById('closeModalBtn').addEventListener('click', cerrarModal);
 
-// ---- OPERACIONES SOBRE TABLAS ----
+// ---- ADMINISTRACIÓN DE TABLAS (CABECERAS / COLUMNAS) ----
+window.gestionarTabla = function(pageKey, sectionIndex) {
+  currentEditPage = pageKey;
+  currentEditSection = sectionIndex;
+  currentEditType = 'table_config';
+
+  const sec = LOCAL_DATA[pageKey].sections[sectionIndex];
+  document.getElementById('modalTitle').textContent = `Configurar Estructura`;
+
+  let html = `
+    <div class="modal-field" style="margin-bottom:20px;">
+      <label>Título de la Sección</label>
+      <input type="text" id="sectionTitleInput" value="${escapeHTML(sec.title)}">
+    </div>`;
+
+  if (sec.type === 'table') {
+    html += `
+      <div class="modal-field">
+        <label>Columnas (Cabeceras)</label>
+        <div id="columnList" style="display:flex; flex-direction:column; gap:8px;">
+    `;
+
+    (sec.headers || []).forEach((h, idx) => {
+      html += `
+        <div class="col-edit-row" data-original-index="${idx}" style="display:flex; gap:8px; align-items:center;">
+          <span style="color:var(--text-muted); font-size:12px; width:20px;">#${idx+1}</span>
+          <input type="text" class="col-name" value="${escapeHTML(h)}" style="flex:1;">
+          <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px;" title="Eliminar Columna">🗑️</button>
+        </div>`;
+    });
+
+    html += `
+        </div>
+        <button onclick="añadirColumnaTabla()" style="margin-top:14px; background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:6px 12px; border-radius:var(--radius); cursor:pointer; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">+ Añadir Columna</button>
+      </div>`;
+  }
+
+  document.getElementById('modalBody').innerHTML = html;
+  abrirModal();
+}
+
+window.añadirColumnaTabla = function() {
+  const div = document.createElement('div');
+  div.className = 'col-edit-row';
+  div.style.cssText = 'display:flex; gap:8px; align-items:center; animation: fadeIn 0.2s ease;';
+  div.innerHTML = `
+    <span style="color:var(--success); font-size:12px; width:20px;">✨</span>
+    <input type="text" class="col-name" placeholder="Nueva Columna" style="flex:1;">
+    <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px;">🗑️</button>
+  `;
+  document.getElementById('columnList').appendChild(div);
+}
+
+// ---- OPERACIONES SOBRE FILAS ----
 window.editarFila = function(pageKey, sectionIndex, rowIndex) {
   currentEditPage = pageKey;
   currentEditSection = sectionIndex;
@@ -712,14 +802,14 @@ window.editarFila = function(pageKey, sectionIndex, rowIndex) {
   currentEditType = 'row';
 
   const section = LOCAL_DATA[pageKey].sections[sectionIndex];
-  const headers = section.headers;
-  const rowObj = section.rows[rowIndex];
+  const headers = section.headers || [];
+  const rowObj = section.rows[rowIndex] || {};
   
-  document.getElementById('modalTitle').textContent = `Editar Fila — Sección: ${section.title}`;
+  document.getElementById('modalTitle').textContent = `Editar Fila`;
   
   let bodyHtml = '';
   headers.forEach((header, idx) => {
-    const value = rowObj[idx] || '';
+    const value = rowObj[idx] !== undefined ? rowObj[idx] : '';
     bodyHtml += `
       <div class="modal-field">
         <label>${escapeHTML(header)}</label>
@@ -737,9 +827,9 @@ window.añadirFilaNueva = function(pageKey, sectionIndex) {
   currentEditType = 'new_row';
 
   const section = LOCAL_DATA[pageKey].sections[sectionIndex];
-  const headers = section.headers;
+  const headers = section.headers || [];
   
-  document.getElementById('modalTitle').textContent = `Añadir Nueva Fila — Sección: ${section.title}`;
+  document.getElementById('modalTitle').textContent = `Añadir Fila`;
   
   let bodyHtml = '';
   headers.forEach((header, idx) => {
@@ -755,8 +845,7 @@ window.añadirFilaNueva = function(pageKey, sectionIndex) {
 }
 
 window.eliminarFila = async function(pageKey, sectionIndex, rowIndex) {
-  if (!confirm("¿Estás seguro de que deseas eliminar esta fila de datos de forma permanente?")) return;
-  
+  if (!confirm("¿Eliminar esta fila de forma permanente?")) return;
   LOCAL_DATA[pageKey].sections[sectionIndex].rows.splice(rowIndex, 1);
   await guardarEnFirebase(pageKey);
 }
@@ -780,7 +869,6 @@ window.editarCard = function(pageKey, sectionIndex, cardIndex) {
       <label>Datos Mínimos / Cuerpo del Mensaje</label>
       <textarea id="cardBodyInput" rows="10">${escapeHTML(card.body)}</textarea>
     </div>`;
-  
   abrirModal();
 }
 
@@ -799,15 +887,58 @@ window.añadirCardNueva = function(pageKey, sectionIndex) {
       <label>Datos Mínimos / Cuerpo del Mensaje</label>
       <textarea id="cardBodyInput" rows="10" placeholder="ASUNTO – DATOS MÍNIMOS 1N:\n1. Descripción..."></textarea>
     </div>`;
-  
   abrirModal();
 }
 
 window.eliminarCard = async function(pageKey, sectionIndex, cardIndex) {
-  if (!confirm("¿Estás seguro de que deseas eliminar esta tarjeta de forma permanente?")) return;
-  
+  if (!confirm("¿Eliminar esta tarjeta de forma permanente?")) return;
   LOCAL_DATA[pageKey].sections[sectionIndex].cards.splice(cardIndex, 1);
   await guardarEnFirebase(pageKey);
+}
+
+// ---- OPERACIONES DE MENÚ LATERAL (CATEGORÍAS) ----
+window.gestionarMenu = function() {
+  currentEditType = 'menu_manager';
+  document.getElementById('modalTitle').textContent = 'Administrar Menú Lateral';
+
+  let html = '<div style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height: 1.5;">Añade, edita o elimina las categorías principales. Guardar cambios actualizará el menú para todos los usuarios.</div>';
+  const cards = LOCAL_DATA['home'].cards || [];
+
+  html += '<div id="menuEditorList" style="display:flex; flex-direction:column; gap:10px;">';
+  
+  cards.forEach((c) => {
+    html += `
+      <div class="menu-edit-row" style="display:flex; gap:8px; align-items:center; background:var(--bg-card); padding:8px; border-radius:var(--radius); border:1px solid var(--border);">
+        <input type="text" class="menu-icon" value="${escapeHTML(c.icon)}" style="width:45px; text-align:center; padding: 6px;" title="Icono (Emoji)">
+        <input type="text" class="menu-id" value="${escapeHTML(c.id)}" style="width:100px; padding: 6px; background: rgba(0,0,0,0.2); color: var(--text-muted);" title="ID Interno (No editable)" disabled>
+        <input type="text" class="menu-title" value="${escapeHTML(c.title)}" style="flex:1; padding: 6px;" title="Título">
+        <input type="text" class="menu-desc" value="${escapeHTML(c.desc)}" style="flex:1.5; padding: 6px;" title="Descripción">
+        <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px;" title="Eliminar Categoría">🗑️</button>
+      </div>
+    `;
+  });
+  html += '</div>';
+
+  html += `<button onclick="añadirFilaMenu()" style="margin-top:14px; background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:6px 12px; border-radius:var(--radius); cursor:pointer; font-size:11px; text-transform: uppercase; letter-spacing: 0.5px;">+ Nueva Categoría</button>`;
+
+  document.getElementById('modalBody').innerHTML = html;
+  abrirModal();
+}
+
+window.añadirFilaMenu = function() {
+  const container = document.getElementById('menuEditorList');
+  const div = document.createElement('div');
+  div.className = 'menu-edit-row';
+  div.style.cssText = 'display:flex; gap:8px; align-items:center; background:var(--bg-card); padding:8px; border-radius:var(--radius); border:1px solid var(--border);';
+  
+  div.innerHTML = `
+    <input type="text" class="menu-icon" placeholder="📁" style="width:45px; text-align:center; padding: 6px;" title="Icono">
+    <input type="text" class="menu-id" placeholder="id_nuevo" style="width:100px; padding: 6px; border-color: var(--info);" title="Escribe un ID sin espacios">
+    <input type="text" class="menu-title" placeholder="Título visible" style="flex:1; padding: 6px;">
+    <input type="text" class="menu-desc" placeholder="Descripción breve..." style="flex:1.5; padding: 6px;">
+    <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px;">🗑️</button>
+  `;
+  container.appendChild(div);
 }
 
 // ---- GUARDADO MAESTRO EN CLOUD FIRESTORE ----
@@ -820,46 +951,96 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
     if (currentEditType === 'row') {
       const rowObj = {};
       const inputs = document.querySelectorAll('.modal-input');
-      inputs.forEach(input => {
-        const idx = input.dataset.index;
-        rowObj[idx] = input.value;
-      });
+      inputs.forEach(input => { rowObj[input.dataset.index] = input.value; });
       LOCAL_DATA[currentEditPage].sections[currentEditSection].rows[currentEditIndex] = rowObj;
-      
+      await guardarEnFirebase(currentEditPage);
+
     } else if (currentEditType === 'new_row') {
       const rowObj = {};
       const inputs = document.querySelectorAll('.modal-input');
-      inputs.forEach(input => {
-        const idx = input.dataset.index;
-        rowObj[idx] = input.value;
-      });
-      if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].rows) {
-        LOCAL_DATA[currentEditPage].sections[currentEditSection].rows = [];
-      }
+      inputs.forEach(input => { rowObj[input.dataset.index] = input.value; });
+      if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].rows) LOCAL_DATA[currentEditPage].sections[currentEditSection].rows = [];
       LOCAL_DATA[currentEditPage].sections[currentEditSection].rows.push(rowObj);
+      await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'card') {
       LOCAL_DATA[currentEditPage].sections[currentEditSection].cards[currentEditIndex] = {
         title: document.getElementById('cardTitleInput').value,
         body: document.getElementById('cardBodyInput').value
       };
+      await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'new_card') {
-      if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].cards) {
-        LOCAL_DATA[currentEditPage].sections[currentEditSection].cards = [];
-      }
+      if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].cards) LOCAL_DATA[currentEditPage].sections[currentEditSection].cards = [];
       LOCAL_DATA[currentEditPage].sections[currentEditSection].cards.push({
         title: document.getElementById('cardTitleInput').value,
         body: document.getElementById('cardBodyInput').value
       });
+      await guardarEnFirebase(currentEditPage);
+
+    } else if (currentEditType === 'table_config') {
+      const sec = LOCAL_DATA[currentEditPage].sections[currentEditSection];
+      sec.title = document.getElementById('sectionTitleInput').value;
+
+      if (sec.type === 'table') {
+        const colRows = document.querySelectorAll('.col-edit-row');
+        const newHeaders = [];
+        const originalIndices = [];
+
+        colRows.forEach(row => {
+          newHeaders.push(row.querySelector('.col-name').value);
+          const origIdx = row.getAttribute('data-original-index');
+          originalIndices.push(origIdx !== null ? parseInt(origIdx) : -1); // -1 significa columna nueva
+        });
+
+        sec.headers = newHeaders;
+
+        // Reconstruimos las filas mapeando las columnas antiguas a sus nuevas posiciones
+        if (sec.rows) {
+          sec.rows = sec.rows.map(oldRowObj => {
+            const newRowObj = {};
+            originalIndices.forEach((origIdx, newIdx) => {
+              if (origIdx !== -1) newRowObj[newIdx] = oldRowObj[origIdx] !== undefined ? oldRowObj[origIdx] : '';
+              else newRowObj[newIdx] = ''; // Columna nueva añadida
+            });
+            return newRowObj;
+          });
+        }
+      }
+      await guardarEnFirebase(currentEditPage);
+
+    } else if (currentEditType === 'menu_manager') {
+      const rows = document.querySelectorAll('.menu-edit-row');
+      const newCards = [];
+      const batchPromises = []; 
+
+      rows.forEach(row => {
+        const icon = row.querySelector('.menu-icon').value || '📁';
+        const id = row.querySelector('.menu-id').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, ''); 
+        const title = row.querySelector('.menu-title').value;
+        const desc = row.querySelector('.menu-desc').value;
+
+        if (id && title) {
+          newCards.push({ id, icon, title, desc });
+          if (!LOCAL_DATA[id]) {
+            LOCAL_DATA[id] = { title: title, meta: desc, sections: [] };
+            batchPromises.push(setDoc(doc(db, "guias_ipc", id), LOCAL_DATA[id]));
+          }
+        }
+      });
+
+      LOCAL_DATA['home'].cards = newCards;
+      await setDoc(doc(db, "guias_ipc", "home"), LOCAL_DATA['home']);
+      if (batchPromises.length > 0) await Promise.all(batchPromises);
+
+      renderSidebar(); 
+      renderPage('home'); 
     }
 
-    await guardarEnFirebase(currentEditPage);
     cerrarModal();
-
   } catch (err) {
-    console.error("Error al salvar cambios en la interfaz:", err);
-    alert("No se pudieron guardar los cambios de forma asíncrona.");
+    console.error("Error al salvar cambios:", err);
+    alert("Hubo un error al sincronizar con la nube.");
   } finally {
     btn.textContent = 'Guardar Cambios';
     btn.disabled = false;
@@ -869,8 +1050,6 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
 async function guardarEnFirebase(pageKey) {
   const docRef = doc(db, "guias_ipc", pageKey);
   await setDoc(docRef, LOCAL_DATA[pageKey]);
-  
-  // Sincronizar motor de búsqueda local y refrescar la vista actual del agente
   buildSearchIndex();
   renderPage(pageKey);
 }
@@ -984,6 +1163,7 @@ function renderSearchResults(query) {
       document.getElementById('searchInput').value = '';
       currentPage = t.dataset.go;
       renderPage(currentPage);
+      renderSidebar();
     });
   });
 }
@@ -1017,14 +1197,6 @@ function escapeHTML(str) {
 }
 
 let currentPage = 'home';
-document.querySelectorAll('.nav-item').forEach(n => {
-  n.addEventListener('click', () => {
-    currentPage = n.dataset.target;
-    document.getElementById('searchInput').value = '';
-    renderPage(currentPage);
-  });
-});
-
 const searchInput = document.getElementById('searchInput');
 let searchTimer;
 searchInput.addEventListener('input', e => {
