@@ -323,7 +323,7 @@
   tr:hover td { background: rgba(255,255,255,0.02); }
   td.muted { color: var(--text-muted); }
 
-  /* ===== CARDS layout (for 2 columns) ===== */
+  /* ===== CARDS layout ===== */
   .two-col {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -372,7 +372,7 @@
     margin-bottom: 6px;
   }
 
-  /* ===== LINKS ===== */
+  /* ===== LINKS & UTILS ===== */
   a {
     color: var(--info);
     text-decoration: none;
@@ -383,67 +383,10 @@
   a:hover { border-bottom-color: var(--info); }
   a.tel { color: var(--success); }
   a.mail { color: var(--accent); }
+  mark { background: var(--accent); color: #1a1a1a; padding: 0 2px; border-radius: 2px; }
+  .empty { text-align: center; color: var(--text-muted); padding: 40px; font-style: italic; }
 
-  /* ===== Search highlight ===== */
-  mark {
-    background: var(--accent);
-    color: #1a1a1a;
-    padding: 0 2px;
-    border-radius: 2px;
-  }
-
-  .empty {
-    text-align: center;
-    color: var(--text-muted);
-    padding: 40px;
-    font-style: italic;
-  }
-
-  /* ===== Search results ===== */
-  .result-section { margin-bottom: 24px; }
-  .result-tag {
-    display: inline-block;
-    background: var(--accent-soft);
-    color: var(--accent);
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-right: 8px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--border-soft); }
-
-  /* Util */
-  code {
-    background: var(--bg-card);
-    color: var(--accent);
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 12px;
-  }
-  .pill {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
-    background: var(--bg-card);
-    color: var(--text-dim);
-    border: 1px solid var(--border);
-  }
-  .pill.chrome { color: #ffa726; border-color: #5a4220; background: rgba(255, 167, 38, 0.08); }
-  .pill.edge { color: #4a9eff; border-color: #1f3a5a; background: rgba(74, 158, 255, 0.08); }
-
-  /* ===== VENTANA MODAL GESTIÓN ===== */
+  /* ===== MODAL ===== */
   .modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100;
@@ -469,6 +412,25 @@
   .btn-save:hover { background: var(--accent-hover); }
   .btn-action-ui { background: transparent; border: none; cursor: pointer; font-size: 14px; opacity: 0.4; transition: opacity 0.15s; padding: 2px; }
   .btn-action-ui:hover { opacity: 1; }
+  
+  /* ========================================================
+     SISTEMA DE ROLES CSS (Magia para ocultar edición) 
+     ======================================================== */
+  .admin-only {
+    display: none !important;
+  }
+  
+  /* Cuando el body tiene la clase 'is-admin', mostramos los elementos .admin-only con su formato correcto */
+  body.is-admin .admin-only {
+    display: inline-flex !important;
+  }
+  body.is-admin th.admin-only, 
+  body.is-admin td.admin-only {
+    display: table-cell !important;
+  }
+  body.is-admin div.admin-only {
+    display: flex !important;
+  }
 </style>
 </head>
 <body>
@@ -498,6 +460,11 @@
         <h2 id="pageTitle">Inicio</h2>
         <div class="meta" id="pageMeta"></div>
       </div>
+      <div>
+        <button id="authBtn" style="background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+          🔒 Iniciar Sesión
+        </button>
+      </div>
     </div>
     <div class="content" id="content"></div>
   </main>
@@ -517,9 +484,33 @@
   </div>
 </div>
 
+<div id="loginModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="width: 350px;">
+    <div class="modal-header">
+      <h3>Acceso Administrador</h3>
+      <button id="closeLoginBtn" class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-field">
+        <label>Correo Electrónico</label>
+        <input type="email" id="loginEmail" placeholder="usuario@ejemplo.com">
+      </div>
+      <div class="modal-field">
+        <label>Contraseña</label>
+        <input type="password" id="loginPassword" placeholder="••••••••">
+      </div>
+      <div id="loginError" style="color: var(--danger); font-size: 12px; display: none; margin-top: 10px; font-weight: 600;"></div>
+    </div>
+    <div class="modal-footer">
+      <button id="submitLoginBtn" class="btn-save">Entrar al Sistema</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, collection, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBc_rVSeTa-RVG9jMvuNoTlKVFIMfVlCQE",
@@ -532,6 +523,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app); // Inicializar Autenticación
 
 // Caché de la base de datos local e Índice Global de búsqueda
 let LOCAL_DATA = {};
@@ -541,10 +533,68 @@ let SEARCH_INDEX = [];
 let currentEditPage = null;
 let currentEditSection = null;
 let currentEditIndex = null;
-let currentEditType = null; // 'row', 'new_row', 'card', 'new_card', 'menu_manager', 'table_config'
+let currentEditType = null; 
 
 /* ============================================================
-   INICIALIZACIÓN DE LA APLICACIÓN
+   LÓGICA DE AUTENTICACIÓN Y ROLES
+   ============================================================ */
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // Usuario logueado: Activamos el CSS que muestra los botones de edición
+    document.body.classList.add('is-admin');
+    const authBtn = document.getElementById('authBtn');
+    authBtn.innerHTML = '🔓 Cerrar Sesión';
+    authBtn.style.color = 'var(--danger)';
+    authBtn.style.borderColor = 'var(--danger)';
+  } else {
+    // Usuario no logueado o deslogueado: Ocultamos edición
+    document.body.classList.remove('is-admin');
+    const authBtn = document.getElementById('authBtn');
+    authBtn.innerHTML = '🔒 Iniciar Sesión';
+    authBtn.style.color = 'var(--text-dim)';
+    authBtn.style.borderColor = 'var(--border)';
+  }
+});
+
+document.getElementById('authBtn').addEventListener('click', () => {
+  if (auth.currentUser) {
+    // Si ya está logueado, cerramos sesión
+    if (confirm("¿Estás seguro de que quieres cerrar sesión y salir del modo administrador?")) {
+      signOut(auth);
+    }
+  } else {
+    // Si no está logueado, abrimos el modal
+    document.getElementById('loginModal').style.display = 'flex';
+  }
+});
+
+document.getElementById('closeLoginBtn').addEventListener('click', () => {
+  document.getElementById('loginModal').style.display = 'none';
+});
+
+document.getElementById('submitLoginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value;
+  const pass = document.getElementById('loginPassword').value;
+  const errorDiv = document.getElementById('loginError');
+  const btn = document.getElementById('submitLoginBtn');
+  
+  errorDiv.style.display = 'none';
+  btn.textContent = 'Verificando...';
+  
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('loginPassword').value = ''; // Limpiar contraseña por seguridad
+  } catch (error) {
+    errorDiv.textContent = '⚠️ Credenciales incorrectas. Verifica tu correo y contraseña.';
+    errorDiv.style.display = 'block';
+  } finally {
+    btn.textContent = 'Entrar al Sistema';
+  }
+});
+
+/* ============================================================
+   INICIALIZACIÓN DE LA APLICACIÓN DE DATOS
    ============================================================ */
 async function initApp() {
   document.getElementById('content').innerHTML = '<div class="empty">Conectando con Firebase y descargando base de datos... ⏳</div>';
@@ -554,7 +604,6 @@ async function initApp() {
       LOCAL_DATA[doc.id] = doc.data();
     });
     
-    // Si la db está vacía o falta 'home', creamos un esqueleto base seguro
     if (!LOCAL_DATA['home']) {
         LOCAL_DATA['home'] = { title: "Inicio", cards: [] };
     }
@@ -610,7 +659,8 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
   let html = '<div class="table-wrap"><table>';
   if (headers && headers.length) {
     html += '<thead><tr>' + headers.map(h => `<th>${escapeHTML(h)}</th>`).join('');
-    html += '<th style="text-align: right; width: 75px;">Gestión</th></tr></thead>';
+    // Añadimos la clase admin-only al TH
+    html += '<th class="admin-only" style="text-align: right; width: 75px;">Gestión</th></tr></thead>';
   }
   html += '<tbody>';
   
@@ -618,7 +668,6 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
     const rowObj = rows[i];
     
     html += '<tr>';
-    // Iteramos basándonos en la longitud real de las cabeceras actuales
     for (let j = 0; j < (headers || []).length; j++) {
       let cell = rowObj[j] !== undefined ? rowObj[j] : '';
       const empty = cell === '' || cell === null;
@@ -632,8 +681,9 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
       html += `<td${empty ? ' class="muted"' : ''}>${finalCell}</td>`;
     }
 
+    // Añadimos la clase admin-only al TD
     html += `
-      <td style="text-align: right; vertical-align: middle; white-space: nowrap;">
+      <td class="admin-only" style="text-align: right; vertical-align: middle; white-space: nowrap;">
         <button class="btn-action-ui" onclick="editarFila('${pageKey}', ${sectionIndex}, ${i})" title="Editar Fila">✏️</button>
         <button class="btn-action-ui" onclick="eliminarFila('${pageKey}', ${sectionIndex}, ${i})" title="Eliminar Fila" style="margin-left: 6px;">🗑️</button>
       </td>
@@ -641,7 +691,8 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
   }
   html += '</tbody></table></div>';
   
-  html += `<button onclick="añadirFilaNueva('${pageKey}', ${sectionIndex})" style="background: transparent; border: 1px dashed var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 11px; margin-bottom: 14px; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px;">+ Añadir Fila</button>`;
+  // Añadimos la clase admin-only al botón de Añadir Fila
+  html += `<button class="admin-only" onclick="añadirFilaNueva('${pageKey}', ${sectionIndex})" style="background: transparent; border: 1px dashed var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 11px; margin-bottom: 14px; font-weight: 500; transition: all 0.2s; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px;">+ Añadir Fila</button>`;
   return html;
 }
 
@@ -654,7 +705,7 @@ function renderCards(cards, pageKey, sectionIndex) {
   function createCardHtml(c, index) {
     return `
       <div class="card" style="position: relative; padding-top: 24px;">
-        <div style="position: absolute; top: 10px; right: 12px; display: flex; gap: 4px;">
+        <div class="admin-only" style="position: absolute; top: 10px; right: 12px; gap: 4px;">
           <button class="btn-action-ui" onclick="editarCard('${pageKey}', ${sectionIndex}, ${index})" title="Editar">✏️</button>
           <button class="btn-action-ui" onclick="eliminarCard('${pageKey}', ${sectionIndex}, ${index})" title="Eliminar">🗑️</button>
         </div>
@@ -669,7 +720,8 @@ function renderCards(cards, pageKey, sectionIndex) {
   for (let i = 0; i < col2.length; i++) htmlCol2 += createCardHtml(col2[i], mid + i);
 
   html = `<div class="two-col"><div>${htmlCol1}</div><div>${htmlCol2}</div></div>`;
-  html += `<button onclick="añadirCardNueva('${pageKey}', ${sectionIndex})" style="background: transparent; border: 1px dashed var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 11px; margin-bottom: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px;">+ Añadir Tarjeta</button>`;
+  // Botón Añadir Tarjeta protegido
+  html += `<button class="admin-only" onclick="añadirCardNueva('${pageKey}', ${sectionIndex})" style="background: transparent; border: 1px dashed var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 11px; margin-bottom: 14px; font-weight: 500; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px;">+ Añadir Tarjeta</button>`;
   return html;
 }
 
@@ -690,7 +742,7 @@ window.renderPage = function(key) {
             <h2>Gestión IPC's de Magistrados</h2>
             <p>Guía rápida de agente — Responsables del servicio, agentes de atención y soporte, técnicos de formación.</p>
           </div>
-          <button onclick="gestionarMenu()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">⚙️ Administrar Categorías</button>
+          <button class="admin-only" onclick="gestionarMenu()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">⚙️ Administrar Categorías</button>
         </div>
       </div>`;
     html += '<div class="home-grid">';
@@ -714,7 +766,7 @@ window.renderPage = function(key) {
     html += `<div class="section">
       <div class="section-title">
         <span class="section-title-left">${escapeHTML(sec.title)}</span>
-        <button onclick="gestionarTabla('${key}', ${s})" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; opacity:0.6; transition:opacity 0.2s;" title="Modificar estructura de Tabla/Sección" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">⚙️ Configurar</button>
+        <button class="admin-only" onclick="gestionarTabla('${key}', ${s})" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; opacity:0.6; transition:opacity 0.2s;" title="Modificar estructura de Tabla/Sección" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">⚙️ Configurar</button>
       </div>`;
     
     if (sec.type === 'table') html += renderTable(sec.headers, sec.rows, key, s);
@@ -990,18 +1042,17 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
         colRows.forEach(row => {
           newHeaders.push(row.querySelector('.col-name').value);
           const origIdx = row.getAttribute('data-original-index');
-          originalIndices.push(origIdx !== null ? parseInt(origIdx) : -1); // -1 significa columna nueva
+          originalIndices.push(origIdx !== null ? parseInt(origIdx) : -1); 
         });
 
         sec.headers = newHeaders;
 
-        // Reconstruimos las filas mapeando las columnas antiguas a sus nuevas posiciones
         if (sec.rows) {
           sec.rows = sec.rows.map(oldRowObj => {
             const newRowObj = {};
             originalIndices.forEach((origIdx, newIdx) => {
               if (origIdx !== -1) newRowObj[newIdx] = oldRowObj[origIdx] !== undefined ? oldRowObj[origIdx] : '';
-              else newRowObj[newIdx] = ''; // Columna nueva añadida
+              else newRowObj[newIdx] = ''; 
             });
             return newRowObj;
           });
