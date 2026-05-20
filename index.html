@@ -179,19 +179,6 @@
     font-size: 12px;
   }
 
-  /* Botón de migración temporal */
-  .btn-migrar {
-    background: var(--danger);
-    color: white;
-    padding: 8px 16px;
-    border: none;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-weight: bold;
-    transition: background 0.2s;
-  }
-  .btn-migrar:hover { background: #b85f43; }
-
   .content { padding: 28px 32px 60px; }
 
   /* ===== HOME ===== */
@@ -298,7 +285,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
-    margin-bottom: 18px;
+    margin-bottom: 6px;
   }
   table {
     width: 100%;
@@ -459,6 +446,33 @@
   }
   .pill.chrome { color: #ffa726; border-color: #5a4220; background: rgba(255, 167, 38, 0.08); }
   .pill.edge { color: #4a9eff; border-color: #1f3a5a; background: rgba(74, 158, 255, 0.08); }
+
+  /* ===== VENTANA MODAL GESTIÓN ===== */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100;
+    backdrop-filter: blur(4px);
+  }
+  .modal-content {
+    background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    width: 550px; max-width: 90%; padding: 22px; box-shadow: var(--shadow);
+  }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-soft); padding-bottom: 10px; }
+  .modal-header h3 { color: var(--accent); font-size: 15px; font-weight: 600; }
+  .modal-close { background: transparent; border: none; color: var(--text-dim); font-size: 22px; cursor: pointer; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { margin-bottom: 20px; display: flex; flex-direction: column; gap: 14px; max-height: 55vh; overflow-y: auto; padding-right: 4px; }
+  .modal-field { display: flex; flex-direction: column; gap: 5px; }
+  .modal-field label { color: var(--text-dim); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .modal-field input, .modal-field textarea {
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 9px 12px; border-radius: var(--radius); font-family: inherit; font-size: 13px; outline: none; transition: border-color 0.15s;
+  }
+  .modal-field input:focus, .modal-field textarea:focus { border-color: var(--accent); }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-soft); padding-top: 14px; }
+  .btn-save { background: var(--accent); color: #1a1a1a; padding: 8px 18px; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; font-size: 13px; transition: background 0.15s; }
+  .btn-save:hover { background: var(--accent-hover); }
+  .btn-action-ui { background: transparent; border: none; cursor: pointer; font-size: 14px; opacity: 0.4; transition: opacity 0.15s; padding: 2px; }
+  .btn-action-ui:hover { opacity: 1; }
 </style>
 </head>
 <body>
@@ -494,6 +508,7 @@
       <div class="nav-item" data-target="hcTelefonia"><span class="nav-icon">📞</span> HC y Telefonía</div>
       <div class="nav-item" data-target="datosMinimos"><span class="nav-icon">📋</span> Datos Mínimos</div>
     </nav>
+    <div class="sidebar-footer">Pulsa <code>Ctrl+K</code> para buscar</div>
   </aside>
 
   <main class="main" id="main">
@@ -502,15 +517,28 @@
         <h2 id="pageTitle">Inicio</h2>
         <div class="meta" id="pageMeta"></div>
       </div>
-      <button id="btnMigrar" class="btn-migrar">⚠️ Ejecutar Migración a Firebase</button>
     </div>
     <div class="content" id="content"></div>
   </main>
 </div>
 
+<div id="editModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle">Editar Registro</h3>
+      <button id="closeModalBtn" class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      </div>
+    <div class="modal-footer">
+      <button id="saveModalBtn" class="btn-save">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, collection, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBc_rVSeTa-RVG9jMvuNoTlKVFIMfVlCQE",
@@ -524,805 +552,51 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Caché de la base de datos local e Índice Global de búsqueda
+let LOCAL_DATA = {};
+let SEARCH_INDEX = [];
+
+// Variables de estado del Modal de edición
+let currentEditPage = null;
+let currentEditSection = null;
+let currentEditIndex = null;
+let currentEditType = null; // 'row', 'card', 'new_row', 'new_card'
+
 /* ============================================================
-   DATOS — extraídos del Excel original
+   INICIALIZACIÓN DE LA APLICACIÓN
    ============================================================ */
-const DATA = {
-  home: {
-    title: 'Inicio',
-    meta: 'Gestión IPC\'s de Magistrados',
-    cards: [
-      { id:'letrados',           icon:'⚖️',  title:'Alta · Letrados',       desc:'Nueva incorporación, sustitución y refuerzo' },
-      { id:'magistrados',        icon:'🏛️',  title:'Alta · Magistrados',    desc:'Procedimiento de alta para magistrados' },
-      { id:'fiscales',           icon:'📜',  title:'Alta · Fiscales',       desc:'Procedimiento de alta para fiscales' },
-      { id:'aplicaciones',       icon:'📦',  title:'Aplicaciones',          desc:'Categoría de producto y asignación' },
-      { id:'aplicacionesComunes',icon:'🌐',  title:'Aplicaciones Comunes',  desc:'Enlaces directos a herramientas judiciales' },
-      { id:'sharepoint',         icon:'🗂️',  title:'SharePoint',            desc:'Sitios SharePoint por área' },
-      { id:'credenciales',       icon:'🔑',  title:'Credenciales',          desc:'Solicitudes de usuario y tipificación' },
-      { id:'tecnico',            icon:'🛠️',  title:'Técnico',               desc:'Grupos de asignación y atajos técnicos' },
-      { id:'hcTelefonia',        icon:'📞',  title:'HC y Telefonía',        desc:'Teletrabajo, O365, telefonía y sala de vistas' },
-      { id:'datosMinimos',       icon:'📋',  title:'Datos Mínimos',         desc:'Plantillas de datos por tipo de incidencia' }
-    ]
-  },
-  letrados: {
-    title: 'Alta · Letrados',
-    meta: 'Nueva incorporación · Sustitución / refuerzo',
-    sections: [
-      {
-        title: 'Nueva incorporación',
-        type: 'table',
-        headers: ['Trámite', 'Vía', 'Detalle'],
-        rows: [
-          ['LOGIN',                'Petición FARO',           'FGA_AG01+RGPD'],
-          ['UNIR',                 'Petición FARO cliente',   ''],
-          ['CATÁLOGO',             'Petición FARO',           'Jdo. Destino o toma de posesión'],
-          ['ALTA APLICACIONES',    'Petición FARO',           'FGA_AG02+RGPD'],
-          ['EFIDELIUS',            'Petición FARO',           'Oficio indicando Jdo. + OID Cert.'],
-          ['PORTATIL',             'Petición FARO',           'Ficha de dotaciones informáticas'],
-          ['VPN',                  'Petición SEDA',           ''],
-          ['CERTIFICADO',          'MINISTERIO DE JUSTICIA',  '913859800']
-        ]
-      },
-      {
-        title: 'Sustitución / Refuerzo',
-        type: 'table',
-        headers: ['Trámite', 'Vía', 'Detalle'],
-        rows: [
-          ['ALTA APLICACIONES',    'Petición FARO', 'FGA_AG02+RGPD'],
-          ['EFIDELIUS',            'Petición FARO', 'Oficio indicando Jdo.'],
-          ['FIVA',                 'Correo',        'mailto:fivafuncionariosjusticia@madrid.org · Previa Alta en USUG'],
-          ['ALTA CARPETA COMPARTIDA','Petición FARO','FGA04+RGPD']
-        ]
-      },
-      {
-        title: 'Aplicaciones (perfiles)',
-        type: 'table',
-        headers: ['Aplicación', 'Perfil'],
-        rows: [
-          ['GPRX', 'RESPONSABLE'],
-          ['ORUS', '1'],
-          ['EJE 6', ''],
-          ['GPBR', '3'],
-          ['GPBV', '1'],
-          ['SEDA', 'RESPONSABLE'],
-          ['DPER', '2'],
-          ['AGVI', '11 o LOGIN DE REFERENCIA'],
-          ['ESJU', '2'],
-          ['INTS', '2'],
-          ['AJGR', '3'],
-          ['FIVA', 'Responsable'],
-          ['OFRE', '4 + LOGIN DE REFERENCIA'],
-          ['SCAC', '8 / 4 Estadística (Titulares)'],
-          ['VIPE', '2'],
-          ['RECI', '6'],
-          ['PENA', '1']
-        ]
-      }
-    ],
-    notes: [
-      'En caso de querer mantener los accesos anteriores indicar "Se mantienen accesos anteriores" en el campo OBSERVACIONES.',
-      'Para los letrados de juzgados perfil 8 en la aplicación SCAC. Si es titular del Servicio común de notificaciones del juzgado perfil 4.',
-      'FIVA: Primero debe tener alta en USUG. Para traslados previamente deberá revisar que tenga alta en USUG (Perfil responsable) y remitirlo a civitas.',
-      'OFRE: Solo decanato o juzgados que vayan a hacer la Guardia.',
-      'Nota: el alta como responsable en SEDA y/o la consulta del receptor de SEDA en órganos judiciales deberá ser asignado al GC.JUST.'
-    ]
-  },
-  magistrados: {
-    title: 'Alta · Magistrados',
-    meta: 'Nueva incorporación · Sustitución / refuerzo',
-    sections: [
-      {
-        title: 'Nueva incorporación',
-        type: 'table',
-        headers: ['Trámite', 'Vía', 'Detalle'],
-        rows: [
-          ['LOGIN',                'Petición FARO',                       'FGA_AG01+RGPD'],
-          ['UNIR',                 'Petición FARO cliente',               ''],
-          ['CATÁLOGO',             'Petición FARO',                       'Jdo. Destino + toma de posesión'],
-          ['ALTA APLICACIONES',    'Petición FARO',                       'FGA_AG02+RGPD'],
-          ['EFIDELIUS',            'Petición FARO',                       'Oficio indicando Jdo.'],
-          ['PORTATIL',             'Petición FARO',                       'Ficha de dotaciones informáticas'],
-          ['VPN',                  'Petición SEDA',                       'A través de la letrada'],
-          ['CERTIFICADO',          'CONSEJO GENERAL DEL PODER JUDICIAL',  '918382680']
-        ]
-      },
-      {
-        title: 'Sustitución / Refuerzo',
-        type: 'table',
-        headers: ['Trámite', 'Vía', 'Detalle'],
-        rows: [
-          ['ALTA APLICACIONES',      'Petición FARO', 'FGA_AG02+RGPD'],
-          ['ALTA CARPETA COMPARTIDA','Petición FARO', 'FGA04+RGPD'],
-          ['EFIDELIUS',              'Petición FARO', 'Oficio indicando Jdo.']
-        ]
-      },
-      {
-        title: 'Aplicaciones (perfiles)',
-        type: 'table',
-        headers: ['Aplicación', 'Perfil'],
-        rows: [
-          ['GPRX', 'RESPONSABLE'],
-          ['ORUS', '1'],
-          ['GPBR', '3'],
-          ['GPBV', '1'],
-          ['AJGR', '3'],
-          ['DPER', '2'],
-          ['AGVI', '11 + LOGIN DE REFERENCIA'],
-          ['ESJU', '1'],
-          ['OFRE', '4'],
-          ['SCAC', '8'],
-          ['VIPE', '2'],
-          ['RECI', '6'],
-          ['PENA', '1']
-        ]
-      }
-    ],
-    notes: [
-      'En caso de querer mantener los accesos anteriores indicar "Se mantienen accesos anteriores" en el campo OBSERVACIONES.',
-      'Nota: el alta como responsable en SEDA y/o la consulta del receptor de SEDA en órganos judiciales deberá ser asignado al GC.JUST.'
-    ]
-  },
-  fiscales: {
-    title: 'Alta · Fiscales',
-    meta: 'Nueva incorporación · Sustitución / refuerzo',
-    sections: [
-      {
-        title: 'Nueva incorporación',
-        type: 'table',
-        headers: ['Trámite', 'Vía', 'Detalle'],
-        rows: [
-          ['LOGIN',                  'Petición FARO',          'FGA_AG01+RGPD'],
-          ['UNIR',                   'Petición FARO cliente',  ''],
-          ['CATÁLOGO',               'Petición FARO',          'Fiscalía + toma de posesión'],
-          ['PORTATIL',               'Petición FARO',          'Ficha de dotaciones informáticas'],
-          ['ALTA APLICACIONES',      'Petición FARO',          'FGA_AG02+RGPD'],
-          ['ALTA CARPETA COMPARTIDA','Petición FARO',          'FGA04+RGPD'],
-          ['VPN',                    'Petición SEDA',          'Dirigirse al receptor SEDA de cada sede'],
-          ['CERTIFICADO',            'MINISTERIO DE JUSTICIA', '913859800']
-        ]
-      },
-      {
-        title: 'Sustitución / Refuerzo',
-        type: 'table',
-        headers: ['Trámite', 'Vía', 'Detalle'],
-        rows: [
-          ['ALTA APLICACIONES',      'Petición FARO', 'FGA_AG02+RGPD'],
-          ['ALTA CARPETA COMPARTIDA','Petición FARO', 'FGA04+RGPD']
-        ]
-      },
-      {
-        title: 'Aplicaciones (perfiles)',
-        type: 'table',
-        headers: ['Aplicación', 'Perfil'],
-        rows: [
-          ['GPRF', 'Fiscal 302 / 301 (Jefe)'],
-          ['ORUS', '2'],
-          ['GPBR', '3'],
-          ['GPBV', '1'],
-          ['GPRM', '1'],
-          ['VIFA', '3'],
-          ['AGVI', '7'],
-          ['PDME', '2']
-        ]
-      }
-    ],
-    notes: [
-      'En caso de querer mantener los accesos anteriores indicar "Se mantienen accesos anteriores" en el campo OBSERVACIONES.'
-    ]
-  },
-  credenciales: {
-    title: 'Credenciales',
-    meta: 'Solicitud de usuario · Tipificación · Grupos',
-    sections: [
-      {
-        title: 'Solicitud de usuario',
-        type: 'table',
-        headers: ['Solicitud', 'Categoría de producto'],
-        rows: [
-          ['DOBLE FACTOR - MI CUENTA',  'PUESTO DE USUARIO > SOFTWARE > SEGURIDAD > DOBLE FACTOR'],
-          ['INACTIVIDAD - PBAU',        'INFRAESTRUCTURAS Y COMUNICACIONES > COMPONENTE LOGICO TRANSVERSAL > OBJETO DE DA (USR. / PC / GROUP / OU / …)'],
-          ['CAMBIO DE CONTRASEÑA',      'APLICATIVO AL QUE NO PUEDE ACCEDER\nSISTEMAS DE INFORMACION > COMUNES > USUG > USUG_MICUENTA'],
-          ['ACCESO A APLICATIVO',       'INFRAESTRUCTURAS Y COMUNICACIONES > COMPONENTE LOGICO TRANSVERSAL > CARPETA COMPARTIDA\nINFRAESTRUCTURAS Y COMUNICACIONES > COMPONENTE LOGICO TRANSVERSAL > OBJETO DE DA (USR. / PC / GROUP / OU / …)'],
-          ['NOLOGON',                   'INFRAESTRUCTURAS Y COMUNICACIONES > COMPONENTE LOGICO TRANSVERSAL > OBJETO DE DA (USR. / PC / GROUP / OU / …)'],
-          ['CORREO ELECTRÓNICO',        'INFRAESTRUCTURAS Y COMUNICACIONES > COMPONENTE LOGICO TRANSVERSAL > BUZON DE CORREO\nINFRAESTRUCTURAS Y COMUNICACIONES > COMPONENTE LOGICO TRANSVERSAL > CUENTA DE CORREO\nINFRAESTRUCTURAS Y COMUNICACIONES > SERVIDOR DE SOFTWARE > CORREO ELECTRONICO > EXCHANGE OFFICE 365'],
-          ['DOBLE FACTOR - 2FA',        'PUESTO DE USUARIO > SOFTWARE > SEGURIDAD > DOBLE FACTOR']
-        ]
-      },
-      {
-        title: 'Grupos de asignación por aplicativos',
-        type: 'table',
-        headers: ['Grupo', 'Casuística'],
-        rows: [
-          ['ING.ARQUITECTURA_SW', 'DOBLE FACTOR MI CUENTA']
-        ]
-      },
-      {
-        title: 'Tipo de alta — Tipificación',
-        type: 'table',
-        headers: ['Tipo de alta', 'Tipificación'],
-        rows: [
-          ['TRASLADO',
-           'CATEGORIA OPERATIVA:\nOP1: GESTION DE IDENTIDADES\nOP2: ALTA / MODIFICACION / BAJA\n\nCATEGORIA PRODUCTO:\nPN1: INFRAESTRUCTURAS Y COMUNICACIONES\nPN2: COMPONENTE LOGICO TRANSVERSAL\nPN3: OBJETO DE DA (USR. / PC / GROUP / OU / …)'],
-          ['ALTA NUEVA INCORPORACIÓN',
-           'CATEGORIA OPERATIVA:\nOP1: GESTION DE IDENTIDADES\nOP2: ALTA / MODIFICACION / BAJA\n\nCATEGORIA PRODUCTO:\nPN1: INFRAESTRUCTURAS Y COMUNICACIONES\nPN2: COMPONENTE LOGICO TRANSVERSAL\nPN3: OBJETO DE DA (USR. / PC / GROUP / OU / …)'],
-          ['ALTA / BAJA POR SUSTITUCIÓN / REFUERZO',
-           'CATEGORIA OPERATIVA:\nOP1: GESTION DE IDENTIDADES\nOP2: ALTA / MODIFICACION / BAJA\n\nCATEGORIA PRODUCTO:\nPN1: INFRAESTRUCTURAS Y COMUNICACIONES\nPN2: COMPONENTE LOGICO TRANSVERSAL\nPN3: OBJETO DE DA (USR. / PC / GROUP / OU / …)'],
-          ['ALTA / BAJA / MODIFICACIÓN APLICACIÓN O CARPETA COMPARTIDA',
-           'CATEGORIA OPERATIVA:\nOP1: GESTION DE IDENTIDADES\nOP2: ALTA / MODIFICACION / BAJA\n\nCATEGORIA PRODUCTO (EJEMPLO):\nPN1: SISTEMAS DE INFORMACION\nPN2: SIFIVAPA\nPN3: FIVA\nPN4: FIVA']
-        ]
-      }
-    ]
-  },
-  tecnico: {
-    title: 'Técnico',
-    meta: 'Grupos de asignación · Atajos técnicos',
-    sections: [
-      {
-        title: 'Grupos presencial',
-        type: 'table',
-        headers: ['Grupo', 'Función'],
-        rows: [
-          ['ST.INTERVENCION_RAPIDA',  'Soporte de Puesto'],
-          ['GINF.SAI_AA',             'Técnico dispositivos SAI y ventilación de RACKs'],
-          ['GINF.CABLEADO',           'Técnico cableado eléctrico'],
-          ['GINF.CONECT_CABLEADO',    'Técnico cableado de red (Incidentes asociados a las "rosetas" de suelo o pared y saneamiento de armarios de comunicaciones)'],
-          ['GE.DESPLIEGUES',          'Técnico Implantación de Multifunciones e Impresoras, Retirada material inventariado y Parcheos'],
-          ['ST.TRASLADOS',            'Traslados simples (Traslados en la misma planta o edificio)'],
-          ['GSI.ALTOSCARGOS',         'Altos cargos (usuarios VIP)']
-        ]
-      },
-      {
-        title: 'Escalados a áreas de servicio',
-        type: 'table',
-        headers: ['Grupo', 'Función'],
-        rows: [
-          ['GC.JUST',
-           'La asignación debe ser al GC correspondiente a la consejería (EMPRESA en FARO) del usuario.\n· Dotaciones de equipamiento de puesto de trabajo, retirada de material (órdenes de traslado, achatarramiento, etc.)\n· Solicitudes de dotación salas de videocolaboración / multimedia\n· Solicitudes de traslados complejos y creación de centros nuevos']
-        ]
-      },
-      {
-        title: 'Grupos aplicaciones / programas',
-        type: 'table',
-        headers: ['Grupo', 'Función'],
-        rows: [
-          ['ING.ARQUITECTURA_PUESTOS_POB',            'Comprobación y Asignación de Licencias y Software'],
-          ['GS.SISTEMAS',                              'Bloqueos PANDA, Phishing'],
-          ['ING.ARQUITECTURA_PUESTOS_GEST_REMOTA',    'Instalación Omnipage'],
-          ['ING.ARQUITECTURA_PUESTOS_POB',            'Comprobación de programas de maquetación']
-        ]
-      },
-      {
-        title: 'Grupos redes',
-        type: 'table',
-        headers: ['Grupo', 'Función'],
-        rows: [
-          ['GCOM.CONECT_SOPORTE', 'Caídas parciales de red, gestión de Switch y WiFi (roseta, switch, puerto del switch, vlan, ...)'],
-          ['GCOM.WAN',            'Caídas generales de red (Centros Docentes NO)'],
-          ['GCOM.LAN',            'Navegación web (Error de acceso denegado, filtrado URLs)']
-        ]
-      },
-      {
-        title: 'Grupos consulta',
-        type: 'table',
-        headers: ['Grupo', 'Función'],
-        rows: [
-          ['GAC.PATRIMONIO', 'Comprobación de material de MD']
-        ]
-      },
-      {
-        title: 'Grupos carpetas red / Directorio Activo',
-        type: 'table',
-        headers: ['Grupo', 'Función'],
-        rows: [
-          ['GSIS.EXPLOTACION', 'Recuperación carpetas / archivos en red'],
-          ['GSIS.CORREO_DA',   'Errores y problemáticas en correoweb, sincronizar permisos Directorio Activo'],
-          ['PA.USUARIOS',      'Revisión de fichas de alta en aplicativos, alta en aplicativos y movimiento de carpetas de red (USUMUL)']
-        ]
-      },
-      {
-        title: 'Solicitud usuario · Categoría de producto',
-        type: 'table',
-        headers: ['Solicitud', 'Categoría de producto'],
-        rows: [
-          ['IMPRESORAS',
-           'SISTEMAS DE IMPRESION > IMPRESORA LOCAL > IMPRESORA LOCAL\nSISTEMAS DE IMPRESION > IMPRESORA COMPARTIDA/RED > IMPRESORA COMPARTIDA/RED\nSISTEMAS DE IMPRESION > IMPRESORA ETIQUETAS > IMPRESORA ETIQUETAS'],
-          ['ESCANER',          'PUESTO DE USUARIO > PERIFERICOS > ESCANER'],
-          ['MULTIFUNCION',     'SISTEMAS DE IMPRESION > MULTIFUNCION > MULTIFUNCION'],
-          ['NAVEGADOR',
-           'PUESTO DE USUARIO > SOFTWARE > NAVEGADORES > CHROME\nPUESTO DE USUARIO > SOFTWARE > NAVEGADORES > EDGE\nPUESTO DE USUARIO > SOFTWARE > NAVEGADORES > FIREFOX'],
-          ['SOFTWARE',         'PUESTO DE USUARIO > SOFTWARE > COMPLEMENTARIO > "SEGUN CORRESPONDA"'],
-          ['OUTLOOK',          'PUESTO DE USUARIO > SOFTWARE > COLABORATIVO/PRODUCTIVIDAD > MICROSOFT OUTLOOK'],
-          ['CORREO WEB',       'INFRAESTRUCTURAS Y COMUNICACIONES > SERVIDOR DE SOFTWARE > CORREO ELECTRONICO > EXCHANGE OFFICE 365'],
-          ['CARPETA COMPARTIDA','INFRAESTRUCTURAS Y COMUNICACIONES > COMPONENTE LOGICO TRANSVERSAL > CARPETA COMPARTIDA'],
-          ['CERTIFICADO DIGITAL','PUESTO DE USUARIO > SOFTWARE > SEGURIDAD > CERTIFICADO DIGITAL'],
-          ['HARDWARE',
-           'PUESTO DE USUARIO > COMPONENTE HARDWARE > CAMARA\nPUESTO DE USUARIO > COMPONENTE HARDWARE > DISCO DURO\nPUESTO DE USUARIO > COMPONENTE HARDWARE > PANTALLA\nPUESTO DE USUARIO > PERIFERICOS > TECLADO/RATON\nPUESTO DE USUARIO > COMPONENTE HARDWARE > OTROS'],
-          ['REDES E INFRAESTRUCTURA',
-           'INFRAESTRUCTURAS Y COMUNICACIONES > COMUNICACIONES > FTTH\nINFRAESTRUCTURAS Y COMUNICACIONES > COMUNICACIONES > VLAN\nINFRAESTRUCTURAS Y COMUNICACIONES > COMUNICACIONES > VLAN > VLAN_GESTION\nINFRAESTRUCTURAS Y COMUNICACIONES > COMUNICACIONES > ETHERNET\nINFRAESTRUCTURAS Y COMUNICACIONES > COMUNICACIONES > SWITCH\nINFRAESTRUCTURAS Y COMUNICACIONES > COMUNICACIONES > ROUTER\nINFRAESTRUCTURAS Y COMUNICACIONES > COMUNICACIONES > WIFI > "SEGUN CORRESPONDA"\nINFRAESTRUCTURAS Y COMUNICACIONES > COMUNICACIONES > PUNTO DE ACCESO WIFI\nINFRAESTRUCTURAS Y COMUNICACIONES > INSTALACIONES > ROSETA\nINFRAESTRUCTURAS Y COMUNICACIONES > INSTALACIONES > INSTALACION ELECTRICA\nINFRAESTRUCTURAS Y COMUNICACIONES > INSTALACIONES > SAI\nINFRAESTRUCTURAS Y COMUNICACIONES > INSTALACIONES > AIRE ACONDICIONADO\nINFRAESTRUCTURAS Y COMUNICACIONES > INSTALACIONES > RACK DE COMUNICACIONES']
-        ]
-      },
-      {
-        title: 'Repositorios de aplicaciones',
-        type: 'table',
-        headers: ['Aplicación', 'Descripción', 'Repositorio'],
-        rows: [
-          ['JAVA',     'Última versión repositorio', '\\\\icm\\ofimatica\\Software\\MAQUINAS VIRTUALES DE JAVA'],
-          ['FNMT',     'Última versión repositorio', '\\\\icm\\ofimatica\\Software\\Paquete Criptografico'],
-          ['AUTOFIRMA','Última versión repositorio', '\\\\icm\\ofimatica\\Software\\AutoFirma'],
-          ['PANDA',    'Última versión repositorio', '\\\\icm\\ofimatica\\Software\\Panda']
-        ]
-      },
-      {
-        title: 'Atajos técnicos',
-        type: 'table',
-        headers: ['Error / Acceso', 'Objetivo', 'Instrucción'],
-        rows: [
-          ['Lentitud equipo',       '',                                  'sfc /scannow'],
-          ['',                      'Actualizar Directivas',             'gpupdate /force'],
-          ['',                      'Ping PC',                           'ping pc'],
-          ['',                      'Limpiar DNS',                       'ipconfig /flushdns'],
-          ['TLS',                   '',                                  'inetcpl.cpl'],
-          ['Administrador de equipos','',                                'netplwiz'],
-          ['',                      'Habilitar zona de seguridad IE',    'C:\\Icmutil\\IE11HEZS'],
-          ['Limpiar CMD',           '',                                  'cls'],
-          ['Info general PC',       '',                                  'systeminfo'],
-          ['MAC',                   '',                                  'getmac'],
-          ['Drivers instalados',    '',                                  'driverquery'],
-          ['Lista de procesos',     '',                                  'tasklist'],
-          ['',                      'Cerrar proceso que no responde',    'tasklist /pid nº proceso'],
-          ['',                      'Liberar espacio',                   'cleanmgr'],
-          ['',                      'Cambio de hora en el portátil',     'time 7:00:00 — como admin'],
-          ['',                      'Parar cola de impresión',           'net stop spooler'],
-          ['',                      'Iniciar cola de impresión',         'net start spooler']
-        ]
-      }
-    ]
-  },
-  sharepoint: {
-    title: 'SharePoint',
-    meta: 'Sitios SharePoint por área',
-    sections: [
-      {
-        title: 'Áreas',
-        type: 'table',
-        headers: ['Área', 'URL'],
-        rows: [
-          ['MADRID CAPITAL',          'https://aiccm.sharepoint.com/sites/SERV_COMUN'],
-          ['ALCORCÓN',                'https://aiccm.sharepoint.com/sites/SCAC_ALCOR'],
-          ['ALCALÁ DE HENARES',       'https://aiccm.sharepoint.com/sites/SCHE'],
-          ['ALCOBENDAS',              'https://aiccm.sharepoint.com/sites/SCBE'],
-          ['ARANJUEZ',                'https://aiccm.sharepoint.com/sites/SCAR'],
-          ['ARGANDA DEL REY',         'https://aiccm.sharepoint.com/sites/SCGA'],
-          ['COLLADO VILLALBA',        'https://aiccm.sharepoint.com/sites/SCVI'],
-          ['COLMENAR VIEJO',          'https://aiccm.sharepoint.com/sites/SCCO'],
-          ['COSLADA',                 'https://aiccm.sharepoint.com/sites/SCLA'],
-          ['FUENLABRADA',             'https://aiccm.sharepoint.com/sites/SCFU'],
-          ['GETAFE',                  'https://aiccm.sharepoint.com/sites/SCFE'],
-          ['LEGANÉS',                 'https://aiccm.sharepoint.com/sites/SCLE'],
-          ['MAJADAHONDA',             'https://aiccm.sharepoint.com/sites/SCMA'],
-          ['MÓSTOLES',                'https://aiccm.sharepoint.com/sites/SCMO'],
-          ['NAVALCARNERO',            'https://aiccm.sharepoint.com/sites/SCNA'],
-          ['PARLA',                   'https://aiccm.sharepoint.com/sites/SCPA'],
-          ['POZUELO',                 'https://aiccm.sharepoint.com/sites/SCPO'],
-          ['SAN LORENZO DEL ESCORIAL','https://aiccm.sharepoint.com/sites/SCES'],
-          ['TORREJÓN',                'https://aiccm.sharepoint.com/sites/SCOZ'],
-          ['TORRELAGUNA',             'https://aiccm.sharepoint.com/sites/SCTO'],
-          ['VALDEMORO',               'https://aiccm.sharepoint.com/sites/SCVA']
-        ]
-      }
-    ]
-  },
-  hcTelefonia: {
-    title: 'HC y Telefonía',
-    meta: 'Teletrabajo · O365 · Zoom · Telefonía · Sala de vistas',
-    sections: [
-      {
-        title: 'Teletrabajo',
-        type: 'table',
-        headers: ['Elemento', 'Categoría de producto'],
-        rows: [
-          ['LICUTIL',  'PUESTO DE USUARIO > SOFTWARE > COMPLEMENTARIO > LICUTIL'],
-          ['VPN ARCO', 'INFRAESTRUCTURAS Y COMUNICACIONES > COMPONENTE LOGICO TRANSVERSAL > VPN ARCO'],
-          ['ISLA',     'SISTEMAS DE INFORMACION > PROCO HORIZONTAL > ISL > ISLA']
-        ]
-      },
-      {
-        title: 'O365',
-        type: 'table',
-        headers: ['Elemento', 'Categoría de producto'],
-        rows: [
-          ['TEAMS',     'SISTEMAS DE INFORMACION > SERVICIOS DE PUESTO > TEAMS > TEAMS_O365'],
-          ['ONEDRIVE',  'SISTEMAS DE INFORMACION > SERVICIOS DE PUESTO > ONEDRIVE > ONEDRIVE_O365'],
-          ['SHAREPOINT','INFRAESTRUCTURAS Y COMUNICACIONES > COMPONENTE LOGICO TRANSVERSAL > SITIO SHAREPOINT'],
-          ['OUTLOOK',   'PUESTO DE USUARIO > SOFTWARE > COLABORATIVO/PRODUCTIVIDAD > MICROSOFT OUTLOOK']
-        ]
-      },
-      {
-        title: 'Zoom',
-        type: 'table',
-        headers: ['Elemento', 'Categoría de producto'],
-        rows: [
-          ['ZOOM',                'SISTEMAS DE INFORMACION > PROCO HORIZONTAL > ZOOM > ZOOM'],
-          ['ZOOM (SALA DE VISTAS)','PUESTO DE USUARIO > SOFTWARE > VIDEOCONFERENCIA > ZOOM']
-        ]
-      },
-      {
-        title: 'Telefonía',
-        type: 'table',
-        headers: ['Elemento', 'Categoría de producto'],
-        rows: [
-          ['BUZÓN DE VOZ / GRUPO DE SALTO / GRUPO DE CAPTURA / MARCACIÓN RÁPIDA', 'TELEFONIA > SOFTWARE > FUNCIONALIDADES DEL SERVICIO'],
-          ['ALTA EXTENSIÓN O LÍNEA',  'TELEFONIA > SOFTWARE > EXTENSION/DDI'],
-          ['APLICACIONES MÓVILES',    'TELEFONIA > SOFTWARE > APLICACIONES MOVILES'],
-          ['CATEGORÍA TRÁFICO',       'TELEFONIA > SOFTWARE > CATEGORIA TRAFICO'],
-          ['CÓDIGO PIN O PUK',        'TELEFONIA > SOFTWARE > CODIGO SEGURIDAD'],
-          ['JABBER',                  'SISTEMAS DE INFORMACION > INT_HERRAMIENTAS_SW > JABBER > JABBER'],
-          ['TERMINAL FIJO',           'TELEFONIA > HARDWARE > TERMINAL FIJO'],
-          ['TERMINAL MÓVIL',          'TELEFONIA > HARDWARE > TERMINAL MOVIL'],
-          ['TARJETAS SIM',            'TELEFONIA > HARDWARE > TARJETA SIM'],
-          ['MÓDEM 3G/4G',             'TELEFONIA > HARDWARE > MODEM 3G/4G'],
-          ['CENTRALITA',              'INFRAESTRUCTURA Y COMUNICACIONES > COMUNICACIONES > CENTRALITA'],
-          ['RIGHTFAX',                'SISTEMAS DE INFORMACION > PROCO HORIZONTAL > RIGHTFAX > RIGHTFAX'],
-          ['FAX FÍSICO',              'INFRAESTRUCTURA Y COMUNICACIONES > COMUNICACIONES > FAX']
-        ]
-      },
-      {
-        title: 'Sala de vistas',
-        type: 'table',
-        headers: ['Elemento', 'Categoría de producto'],
-        rows: [
-          ['EFIDELIUS', 'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > EFIDELIUS > CICEROWEB - SEDE - X*\n(SEDE - X*): SEGÚN CORRESPONDA']
-        ]
-      },
-      {
-        title: 'Grupos · O365 (Teams, OneDrive, SharePoint)',
-        type: 'table',
-        headers: ['Grupo', 'Función'],
-        rows: [
-          ['ING.SOLUCIONES_PTD', 'Alta O365, Creación de SHAREPOINT, errores con las licencias O365'],
-          ['GSIS.CORREO_DA',     'Errores y problemáticas en correoweb']
-        ]
-      },
-      {
-        title: 'Grupos · Telefonía',
-        type: 'table',
-        headers: ['Grupo', 'Función'],
-        rows: [
-          ['GCOM.VOZ', 'Incidencias con referencia a telefonía fija y móvil']
-        ]
-      },
-      {
-        title: 'Grupos · Sala de vistas',
-        type: 'table',
-        headers: ['Grupo', 'Función'],
-        rows: [
-          ['ST.GRABACION_DIG',       'Fallos en los elementos de las salas de vistas (excepto equipo auxiliar)\nErrores en Efidelius (independientemente del equipo)\nVisionado de pruebas en juicios\nCorte o modificación en grabaciones (siempre con oficio)\nSolicitud de copias de juicios que no aparezcan en el sistema - altas'],
-          ['ST.VIDEOCONF',           'Solicitud de videoconferencias\nIncidencias derivadas con los equipos de videoconferencia\nProblemas con Zoom en sala'],
-          ['ST.INTERVENCION_RAPIDA', 'Incidencias derivadas en la sala Gessel y juzgados de Guardia']
-        ]
-      }
-    ]
-  },
-  datosMinimos: {
-    title: 'Datos Mínimos',
-    meta: 'Plantillas por tipo de incidencia',
-    sections: [
-      {
-        title: 'Herramienta colaborativa · O365',
-        type: 'cards',
-        cards: [
-          { title:'TEAMS', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Descripción del problema:\n2. Tipo de Licencia O365:\n3. Accede por apl web o pesado:\n4. ¿Solamente le sucede en este equipo?: (SI/NO)\n5. Maqueta de Equipo:\n6. Usuario con lo que Accede:\n7. Borrado temporales TEAMS:\n8. Desvinculación/Activación de licencia TEAMS: SI/NO\n9. Reinicio de Equipo: (SI/NO)\n10. Reinstalación de TEAMS: (SI/NO)\n11. Nº Equipo:\n12. Juzgado de Guardia: (SI/NO)\n13. Capturas de pantalla:' },
-          { title:'ONEDRIVE', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Descripción del problema:\n2. Tipo de Licencia O365:\n3. Accede por apl web o pesado:\n4. ¿Solamente le sucede en este equipo?: (SI/NO)\n5. Maqueta de Equipo:\n6. Borrado temporales ONEDRIVE:\n7. Desvinculación/Activación de licencia ONEDRIVE: SI/NO\n8. Desincronización y sincronización de ONEDRIVE: SI/NO\n9. Reinicio de Equipo: (SI/NO)\n10. Reinstalación de ONEDRIVE: (SI/NO)\n11. Nº Equipo:\n12. Juzgado de Guardia: (SI/NO)\n13. Capturas de Pantalla:' },
-          { title:'SHAREPOINT', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Descripción del problema:\n2. Tipo de Licencia O365:\n3. Accede por apl web o pesado:\n4. ¿Solamente le sucede en este equipo?: (SI/NO)\n5. Maqueta de Equipo:\n6. Desvinculación/Activación de licencia sharepoint: SI/NO/NO APLICA\n7. Desincronización y sincronización de sharepoint: SI/NO/NO APLICA\n8. Reinicio de Equipo: (SI/NO)\n9. Nº Equipo:\n10. Juzgado de Guardia: (SI/NO)\n11. Capturas de Pantalla error:' },
-          { title:'O365 Paquete Office', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. ¿El problema lo posee en documentos en red?\n2. ¿Solamente es en carpetas compartidas o también influye en local?\n3. Reparación completa de O365\n4. Sincronización de AntiVirus\n5. Comprobaciones generales del equipo (caché, proxy, tls...)\n6. ¿Le sucede solamente al usuario o a más compañeros?\n7. ¿Ha probado desde otro equipo?' }
-        ]
-      },
-      {
-        title: 'Herramienta colaborativa · Zoom',
-        type: 'cards',
-        cards: [
-          { title:'ZOOM', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Descripción del problema:\n2. ¿Tiene licencia de zoom? SI/NO\n3. Dirección de correo zoom:\n4. Se cambió la contraseña zoom a través de Zoom.us: SI/NO/NO APLICA\n5. Accede por apl web o pesado:\n6. Reinstalación de Zoom: SI/NO/NO aplica\n7. ¿Solamente le sucede en este equipo?: (SI/NO)\n8. Instalación/Reinstalación driver de Cámara/micrófono: SI/NO/NO APLICA\n9. Maqueta de Equipo:\n10. ID de Reunión:\n11. Reinicio de Equipo: (SI/NO)\n12. Nº Equipo:\n13. Juzgado de Guardia: (SI/NO)\n14. Capturas de Pantalla error:\n15. Nº de procedimiento/año:\n16. Nº de sala de vistas:' },
-          { title:'ERRORES EN ZOOM', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Número de inventario\n2. Número de la sala, ubicación, datos del procedimiento (tipo, nº y año)\n3. Pantallazo si procede. ID de reunión.\n4. Número de serie, marca y modelo tanto del equipo como del micrófono.' },
-          { title:'SOLICITUD DE VIDEOCONF', body:'Realización de formulario en:\nhttps://comunidadmadrid-dwp.onbmc.com/dwp/app/#/itemprofile/10302\n\nASUNTO – DATOS MÍNIMOS 1N:\n1. Ubicación del equipo:\n2. Datos de conexión con destino (Nº de conexión o IP):\n3. Datos de contacto (Persona / Teléfono):\n4. Nº de equipo:' },
-          { title:'ERROR DE ACCESO WEB', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Alta con una cuenta corporativa tipo "madrid.org"\n2. Perfil de navegación tipo 2 o superior\n3. Número de la sala y ubicación, datos del procedimiento (tipo, nº y año) y nº de inventario.\n4. Pantallazo del error si procede.' }
-        ]
-      },
-      {
-        title: 'Teletrabajo · VPN',
-        type: 'cards',
-        cards: [
-          { title:'VPN', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Login:\n2. Nº de PC/Portátil:\n3. Perfil de navegación de usuario\n4. Maquetado de equipo CMADRID:\n5. Tipo de VPN:\n6. Tipo de cliente VPN: (Cliente web/Pesado/Nativa):\n7. GAR/VPN ARCO:\n8. IP de Origen:\n9. Puertos:\n10. URL/Aplicación:\n11. Pruebas Mínimas: (En checklist)\n12. Código Fuente:\n13. Proxy: (Configurado SI/NO):\n14. Detalle de la Avería:\n15. ¿Tiene agente forcepoint instalado en el portátil? (SI/NO)\n16. ¿La incidencia con el portátil se produce fuera de la oficina? (SI/NO)\n17. Nº de teléfono contacto (móvil).\n18. ¿Si está teletrabajando o está en oficina?\n19. Ubicación:' },
-          { title:'VPN ARCO', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Descripción de incidencia:\n2. Login:\n3. Nº de PC/Portátil:\n4. Perfil de navegación de usuario\n5. Maquetado de equipo CMADRID:\n6. Tipo de cliente VPN: Pesado\n7. GAR/VPN ARCO:\n8. IP de Origen:\n9. Puertos:\n10. URL/Aplicación:\n11. Pruebas Mínimas: (En checklist)\n12. Código Fuente:\n13. Proxy: (Configurado SI/NO):\n14. Dirección proxy:\n15. Reinstalación de Checkpoint VPN:\n16. ¿Tiene agente forcepoint instalado en el portátil? (SI/NO)\n17. ¿La incidencia con el portátil se produce fuera de la oficina? (SI/NO)\n18. Nº de teléfono contacto (móvil).\n19. ¿Si está teletrabajando o está en oficina?:\n20. Ubicación:' }
-        ]
-      },
-      {
-        title: 'Técnico',
-        type: 'cards',
-        cards: [
-          { title:'GENERALES TÉCNICO', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Login de usuario\n2. Nº inventario del PC\n3. Pruebas mínimas: (checklist)\n4. Capturas de pantallas:\n5. Ubicación:\n6. Teléfono de contacto:' },
-          { title:'INCIDENCIAS DE NAVEGACIÓN', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Descripción de incidencia:\n2. Login:\n3. Nº de PC/Portátil:\n4. Perfil de navegación de usuario\n5. Maquetado de equipo CMADRID:\n6. IP de Origen:\n7. Puertos:\n8. URL/Aplicación:\n9. Pruebas Mínimas: (En checklist)\n10. Borrar DNS/Caché:\n11. Código Fuente (INC Acceso denegado):\n12. Proxy: (Configurado SI/NO):\n13. Dirección proxy:\n14. ¿Tiene agente forcepoint instalado en el portátil? (SI/NO)\n15. ¿La incidencia con el portátil se produce fuera de la oficina? (SI/NO)\n16. Nº de teléfono contacto (móvil).\n17. Ubicación:\n18. Captura de pantalla:' },
-          { title:'HIBRIDACIÓN', body:'¿Se está realizando la hibridación en la sede? SI/NO' }
-        ]
-      },
-      {
-        title: 'Impresora / Multifunción / Fotocopiadora / Escáner',
-        type: 'cards',
-        cards: [
-          { title:'IMPRESORA', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Login de usuario\n2. Nº inventario del dispositivo\n3. Nº inventario del PC\n4. Tipo de tóner (original o reciclado)\n5. ¿Cambio de tóner?: SI/NO/NO APLICA\n6. Descripción detallada del problema\n7. Ubicación física del usuario\n8. Ubicación física del dispositivo\n9. Pruebas mínimas:\n10. Capturas de pantallas:\n11. ¿Se encuentra en red?: SI/NO\n12. Impresora local: SI/NO' },
-          { title:'MULTIFUNCIÓN', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Login de usuario\n2. Nº inventario del dispositivo\n3. Nº inventario del PC\n4. Tipo de tóner (original o reciclado)\n5. Descripción detallada del problema\n6. Ubicación física del usuario\n7. Ubicación física del dispositivo\n8. ¿Se encuentra en red?: SI/NO\n9. Confirmación de existencia de un punto de red\n10. Pruebas mínimas: (checklist)\n11. Capturas de pantallas:\n12. Formulario multifunciones y escaneo en red, debidamente cumplimentado.' }
-        ]
-      },
-      {
-        title: 'Correo electrónico',
-        type: 'cards',
-        cards: [
-          { title:'COMPROBACIONES GENERALES', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Licencia de O365:\n2. Acceso pesado/web:\n3. Correo:' },
-          { title:'CORREO ELECTRÓNICO', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Login de usuario\n2. Nº inventario del PC\n3. Pruebas mínimas: (checklist)\n4. Capturas de pantallas:\n5. Acceso por (outlook.office.com, outlook.live.com, outlook.office365.com, correoweb.madrid.org):\n6. Licencia O365:\n7. Buzón delegado: SI/NO/NO APLICA\n8. Accesos por cliente: pesado/web\n9. Restablecimiento MFA2: SI/NO\n10. Fecha de última modificación de contraseña:\n11. Existen acciones pendientes:\n12. Direcciones de correos afectados:' },
-          { title:'PROBLEMAS DE EMISIÓN / RECEPCIÓN', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. ¿Ha podido comunicarse con ese remitente más veces?\n2. Revisión de emisores bloqueados\n3. Comprobación de reglas\n4. ¿Solamente le sucede desde el correo X?\n5. Revisión desde correo emisor y receptor' },
-          { title:'PHISING', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. ¿Es la primera vez que le sucede?\n2. ¿Ha habido más comunicaciones de ese emisor?\n3. ¿Ha accedido a algún enlace de esa comunicación?\n4. Revisión de bloqueo de remitente\n5. Reglas de correo\n6. Datos mínimos' },
-          { title:'URLs ACCESO WEB', body:'outlook.office.com\noutlook.live.com\noutlook.office365.com\ncorreoweb.madrid.org' }
-        ]
-      },
-      {
-        title: 'Certificado digital',
-        type: 'cards',
-        cards: [
-          { title:'CERTIFICADO DIGITAL', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Revisión de Paquete Criptográfico:\n2. Reinstalación de Paquete Criptográfico\n3. Configuración de aplicativos de firma\n4. ¿El certificado está vigente?\n5. ¿Está revocado el certificado? (VALIDE)\n6. ¿Puede firmar en otros aplicativos?\n7. Revisión de almacén de Windows\n8. Drivers actualizados de Lector de Tarjetas\n9. Datos mínimos\n10. Disponibilidad horaria:\n11. Adjuntos con errores e información de incidencia\n12. Log de .afirma en el perfil del usuario\n13. ¿Ha probado con otro teclado en otro equipo?' }
-        ]
-      },
-      {
-        title: 'Aplicaciones · ORUS / GPRX',
-        type: 'cards',
-        cards: [
-          { title:'PRUEBAS MÍNIMAS', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Restablecimiento del Navegador\n2. Borrado de Caché' },
-          { title:'DATOS GENERALES', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Nº de procedimiento: (Afectado o afectados)\n2. Afecta a varios procedimientos SI/NO\n3. Descripción del problema:\n4. Pruebas mínimas: (En formato checklist)\n5. Afecta a varios usuarios: SI/NO\n6. Afecta un modelo: SI/NO\n7. Captura de pantalla previo al error\n8. Captura de la pantalla del error\n9. Login afectado\n10. PC Afectado' },
-          { title:'MODIFICACIÓN DE LA APLICACIÓN', body:'Oficio' },
-          { title:'PERMISOS', body:'Login de Referencia' },
-          { title:'ERROR DE COMPOSITOR', body:'Log Compositor' },
-          { title:'ERROR DE FIRMA', body:'Log Afirma' }
-        ]
-      },
-      {
-        title: 'Aplicaciones · ORUS',
-        type: 'cards',
-        cards: [
-          { title:'ERROR SINCRONIZACIÓN', body:'En caso menor de 15 días naturales:\n- Oficio\n\nEn caso mayor a 15 días naturales, pedir los datos del procedimiento:\n1. Nº de proc:\n2. Tipo de proc:\n3. Fecha y hora de grabación de vista:\n4. Sala de vistas:\n5. Capturas de pantalla de Efidelius\n6. Capturas de pantallas de ORUS' }
-        ]
-      },
-      {
-        title: 'Aplicaciones · ESJU',
-        type: 'cards',
-        cards: [
-          { title:'GESTIÓN DE IPC\'S', body:'Login de usuario\nJuzgado\nPerfil del usuario\nDetalle del error producido\nCapturas de pantalla\nInformación del error' }
-        ]
-      },
-      {
-        title: 'Aplicaciones · Portafirmas',
-        type: 'cards',
-        cards: [
-          { title:'PORTAFIRMAS', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Nº de procedimiento: (Afectado o afectados)\n2. Descripción del problema: detallado\n3. Pruebas mínimas: Restablecimiento del Navegador y borrado de Caché es obligatorio (En formato checklist)\n4. Afecta a varios usuarios: SI/NO\n5. Afecta a varios procedimientos SI/NO\n6. Afecta un modelo: SI/NO\n7. Capturas de Pantalla de los procesos realizados\n8. PC Afectado:\n9. Log Compositor (Caso que aplica - errores de compositor)\n10. Log Afirma (Caso que aplica - error de firma)' }
-        ]
-      },
-      {
-        title: 'Aplicaciones · Efidelius',
-        type: 'cards',
-        cards: [
-          { title:'EFIDELIUS', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Revisión de Paquete Criptográfico:\n2. Reinstalación de Paquete Criptográfico\n3. Configuración de aplicativos de firma\n4. ¿El certificado está vigente?\n5. ¿Está revocado el certificado? (VALIDE)\n6. ¿Puede firmar en otros aplicativos?\n7. Revisión de almacén de Windows\n8. Drivers actualizados de Lector de Tarjetas\n9. Datos mínimos de Procedimientos/Vistas\n10. Disponibilidad horaria:\n11. ¿Solamente le sucede con esas vistas?\n12. ¿Desde hace cuánto posee el problema?\n13. ¿Solamente desde ese equipo?\n14. OID del Certificado' },
-          { title:'INC CON OFICIOS', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Login usuario o afectados:\n2. Nombre completo:\n3. Cargo:\n4. Fecha de la vista:\n5. Nº de procedimientos afectados:\n6. Nº de Sala de vistas\n7. Dirección y Planta:\n8. Detalle de la solicitud:\n9. Juzgado de Guardia: (SI/NO)' },
-          { title:'TÉCNICO', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Tipo de Cargo: Magistrado / Letrado\n2. Acceso mediante certificado a la Sede (URL) correspondiente a su órgano: (SI/NO)\n3. MS Edge con versión de compatibilidad de IE: (SI/NO)\n4. Configuración de Proxy: (SI/NO)\n5. Proxy a utilizar:\n6. Java (8.162): (INSTALACIÓN/REINSTALACIÓN)\n7. Paquete criptográfico de la FNMT última versión: (INSTALACIÓN/REINSTALACIÓN)\n8. Nº de procedimientos afectados:\n9. Captura de Pantalla del Error:\n10. Captura de Pantalla en ORUS / Efidelius:\n11. Nº de Sala de vistas:\n12. Dirección y Planta:\n13. Error afecta solo a ORUS: (SI/NO)\n14. Error afecta solo a Efidelius: (SI/NO)\n15. Certificado OID:\n16. Login de referencia Fiscalía: (NO APLICA/LOGIN DE REFERENCIA)\n17. Incidencia previa: (NO APLICA/LOGIN DE REFERENCIA)\n18. Juzgado de Guardia: (SI/NO)' },
-          { title:'ALTA', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Login de Usuario o afectados:\n2. Nombre completo:\n3. Cargo: Magistrado / Juez / Letrado / Fiscal\n4. Código OID: (Adjuntar captura "letrados")\n5. URL Efidelius:\n6. Juzgado donde requiere alta:\n7. Oficio: Adjuntar\n8. Juzgado de Guardia: (SI/NO)' }
-        ]
-      },
-      {
-        title: 'Telefonía',
-        type: 'cards',
-        cards: [
-          { title:'TELEFONÍA FIJA', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Login - DNI - nombre y apellidos\n2. Nº Línea (o Línea ascensor / alarma / FAX)\n3. Extensión y MAC, IMEI\n4. Marca y modelo\n5. Ubicación, planta y despacho UT correcta\n6. Telf. contacto' },
-          { title:'TELEFONÍA MÓVIL', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Nombre usuario - login - DNI\n2. ¿El teléfono es corporativo?\n3. Nº Línea\n4. IMEI Terminal\n5. Marca y modelo\n6. Ubicación planta, despacho y teléfono contacto' },
-          { title:'SUSTITUCIÓN DE TERMINAL / REPOSICIÓN', body:'1. Petición abierta a nombre del LAJ o en copia\n3. Datos del terminal completos:\n  - Marca y modelo\n  - Nº línea:\n  - IMEI:' },
-          { title:'SOLICITUD DE ROAMING / LLAMADAS INTERNACIONALES', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Petición abierta a nombre del LAJ\n2. Ficha de telefonía (dependiendo del terminal que corresponda)\n3. Ubicación planta, despacho y teléfono de contacto\n4. Nombre usuario - login - DNI\n5. ¿El teléfono es corporativo?\n6. Nº Línea\n7. IMEI Terminal\n8. Marca y modelo' }
-        ]
-      },
-      {
-        title: 'Fichas',
-        type: 'cards',
-        cards: [
-          { title:'FICHAS', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Solicitud: Descripción. Comprobados datos obligatorios de la ficha\n2. Versión de ficha revisada: (SI/NO)\n3. Perfiles de referencia: (Listado de Aplicación + Perfil)\n4. Firma validada: (SI/NO)\n5. Mantener accesos: (SI/NO). Solicitud por: (sustitución / refuerzo / traslado / Alta nueva)\n6. Horario:\n7. Ubicación: (según ficha). Login de referencia Fiscalía: NO APLICA / LOGIN DE REFERENCIA. Incidencia previa: NO APLICA / INC\n8. Ficha (Adjuntar)\n9. Juzgado de Guardia: (SI/NO)' }
-        ]
-      },
-      {
-        title: 'Sala de vistas',
-        type: 'cards',
-        cards: [
-          { title:'TÉCNICO / FUNCIONAL', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Tipo de Cargo: (Magistrado / Letrado)\n2. Acceso mediante certificado a la Sede (URL) correspondiente a su órgano: (SÍ/NO)\n3. MS Edge con versión de compatibilidad de IE: (SÍ/NO)\n4. Configuración de Proxy: (SÍ/NO). ¿Qué proxy?:\n5. Java (8.162): Instalación / Reinstalación\n6. Paquete criptográfico de la FNMT última versión: Instalación / Reinstalación\n7. Nº de procedimientos afectados: (lista)\n8. Captura de Pantalla del Error (Obligatorio)\n9. Captura de Pantalla en ORUS / Efidelius: (Obligatorio). Nº de Sala de vistas\n10. Dirección y Planta:\n11. Error afecta solo a ORUS: (SÍ/NO)\n12. Error afecta solo a Efidelius: (SÍ/NO)\n13. Certificado OID' },
-          { title:'VIDEOCONFERENCIAS', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Nº de Sala y ubicación\n2. Teléfono de conexión y contacto\n3. Datos del procedimiento (tipo, nº y año) de la videoconferencia\n4. Nº de inventario del equipo\n5. En caso de ser problemas de conexión: Datos de conexión, sala donde se celebra y procedimiento:\n6. Nº conexión de videoconferencia:\n7. Juzgado de Guardia: (SI/NO)' },
-          { title:'SALA', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Juzgado afectado:\n2. Error / mensaje de pantalla:\n3. Nº de Sala de vistas\n4. Dirección y Planta:\n5. Servicios de Justicia: (Sala de Vistas o Juzgados de Guardia)\n6. Fecha de la vista:\n7. Nº de procedimiento afectado:\n8. Oficio: (Por modificación)' },
-          { title:'SOLICITUD DE OFICIOS', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Login usuario:\n2. Nombre completo:\n3. Cargo:\n4. Fecha de la vista:\n5. Nº de procedimiento afectado:\n6. Nº de Sala de vistas\n7. Dirección y Planta: Detalle de la solicitud' }
-        ]
-      },
-      {
-        title: 'Credenciales',
-        type: 'cards',
-        cards: [
-          { title:'DATOS GENERALES', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Login de usuario\n2. Nº inventario del PC\n3. Teléfono de contacto:\n4. Pruebas mínimas: (checklist)\n5. Capturas de pantallas:\n6. Ubicación:' },
-          { title:'CREDENCIALES', body:'ASUNTO – DATOS MÍNIMOS 1N:\n1. Login de usuario\n2. Nº inventario del PC\n3. Teléfono de contacto:\n4. Pruebas mínimas: (checklist)\n5. Capturas de pantallas:\n6. Ubicación:\n7. Teléfono de contacto:\n8. ¿Tiene alta en la aplicación?:\n9. Fecha de última modificación de contraseña\n10. Reinicio del equipo:\n11. Usuario bloqueado USUG/INTS: SI/NO\n12. Acciones pendientes (USUG): SI/NO\n13. Acceso con certificado: SI/NO\n14. Acceso con login: SI/NO' },
-          { title:'MICUENTA', body:'Restablecimiento de MFA2 micuenta' }
-        ]
-      }
-    ]
-  },
-  aplicaciones: {
-    title: 'Aplicaciones',
-    meta: 'Categoría de producto · Asignación',
-    sections: [
-      {
-        title: 'Aplicaciones · Categoría · Asignación',
-        type: 'table',
-        headers: ['Aplicación', 'Categoría de producto', 'Asignación'],
-        rows: [
-          ['GPRX-portafirmas',           'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > GPRX > GPRX-FIRMA ELECTRONICA RESOLUCIONES*', 'SEGÚN POAP'],
-          ['GPRX-consultas',             'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > GPRX > GPRX-CONSULTAS*',                       'SEGÚN POAP'],
-          ['GPRX-bandeja de entrada',    'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > GPRX > GPRX-ENTRADAS*',                        'SEGÚN POAP'],
-          ['GPRX-funcionamiento por lote','SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > GPRX > GPRX-FUNCIONAMIENTO POR LOTE*',         'SEGÚN POAP'],
-          ['GPRX-general',               'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > GPRX > GPRX-GENERAL*',                         'SEGÚN POAP'],
-          ['GPRX-impulso procesal',      'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > GPRX > GPRX-IMPULSO PROCESAL*',                'SEGÚN POAP'],
-          ['GPRX-interviniente',         'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > GPRX > GPRX-INTERVINIENTE*',                   'SEGÚN POAP'],
-          ['GPRX-tramitacion',           'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > GPRX > GPRX-TRAMITACION*',                     'SEGÚN POAP'],
-          ['GPRX-utilidades',            'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > GPRX > GPRX-UTILIDADES*',                      'SEGÚN POAP'],
-          ['OFRE',                       'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > OFRE > OFRE',                                  'SEGÚN POAP'],
-          ['SCAC',                       'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > SCAC > SCA',                                   'SEGÚN POAP'],
-          ['AJGR',                       'SISTEMAS DE INFORMACION > JUSTICIA > AJGR > AJGR',                                            'SEGÚN POAP'],
-          ['DPER',                       'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > DPER > DPER',                                  'SEGÚN POAP'],
-          ['SEDA',                       'SISTEMAS DE INFORMACION > INT_GEST_PTD > SEDA > SEDA',                                        'GC.JUST'],
-          ['VIPE',                       'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > VIPE > VIPE',                                  'SEGÚN POAP'],
-          ['ESJU',                       'SISTEMAS DE INFORMACION > ORGANOS JUDICIALES > ESJU > ESJU_MOV_ESCRITORIOJUDICIAL',           'SEGÚN POAP (SEGÚN PESTAÑA DE OBSERVACIONES)']
-        ]
-      }
-    ],
-    notes: [
-      '(*): PN3 y PN4 SEGÚN UNIDAD FUNCIONAL (FISCALÍA, MENORES Y DISCAPACIDAD)'
-    ]
-  },
-  aplicacionesComunes: {
-    title: 'Aplicaciones Comunes',
-    meta: 'Enlaces directos a herramientas judiciales',
-    sections: [
-      {
-        title: 'Ministerio',
-        type: 'table',
-        headers: ['Aplicación', 'Descripción', 'URL', 'Teléfono', 'Navegador'],
-        rows: [
-          ['APODERA',                          'Consulta de apoderamiento',                                                        'https://reaj.justicia.es/reajusticia/action/secure/entrar2.do',                                                                                              '913859800', 'CHROME'],
-          ['TEJU',                             'Edictos judiciales',                                                               'https://extranet.boe.es/teju',                                                                                                                              '60',        'CHROME'],
-          ['VILEM',                            'Cex y Cexil junto',                                                                'https://cex.portal.ss/dana-na/auth/url_1/welcome.cgi',                                                                                                      '913902700', 'CHROME'],
-          ['SIP',                              'SIP',                                                                              'https://nsip.iipp.es/WEBSIP/',                                                                                                                              '',          'CHROME'],
-          ['ESCRITORIO INTEGRADO',             'Escritorio Integrado (Fiscales)',                                                  'https://cas.justicia.es/cas/login?service=https%3A%2F%2Fescritorio.justicia.es%2Fjustihome%2Fj_spring_cas_security_check',                                  '913859800', 'CHROME'],
-          ['FORTUNY',                          'Dictámenes Fiscales',                                                              'https://fiscaliamadrid.fiscal.es/MJU_FiscaliaWeb/',                                                                                                         '913859800', 'EDGE'],
-          ['AINOA',                            'AINOA ALTA FISCALES',                                                              'https://pubwebseal.justicia.es/Ainoa',                                                                                                                      '913859800', 'EDGE/CHROME'],
-          ['acced@ PAE',                       'Portal administración electrónica',                                                'https://administracionelectronica.gob.es/',                                                                                                                 '913859800', 'CHROME'],
-          ['DICIREG',                          'Registro Único aplicación',                                                        'https://dicireg.mjusticia.es/tramitacion/multilogin',                                                                                                       '',          'CHROME'],
-          ['SIRAJ2',                           'Sistema de registros administrativos de apoyo de justicia',                       'https://siraj2.justicia.es',                                                                                                                                '913859800', 'EDGE/CHROME'],
-          ['PAJ',                              'Portal administración Justicia Letrados',                                          'https://paj.justicia.es',                                                                                                                                   '913859800', 'CHROME'],
-          ['JUICIOS RÁPIDOS',                  'Penal · Registro de juicios rápidos',                                              'https://juiciosrapidos.justicia.es',                                                                                                                        '913859800', 'CHROME'],
-          ['AINOA (Autoservicio)',             'Autoservicio del empleado ministerio',                                             'https://pubwebseal.justicia.es/sap/bc/webdynpro/sap/zportal',                                                                                               '913859800', 'CHROME'],
-          ['ORFILA',                           'Consulta de información y emisión de documentos periciales médicos / psicológicos','https://cas.justicia.es/cas/login?service=https%3A%2F%2Forfila.justicia.es%2Fsiiml2-webapp%2Fj_spring_cas_security_check',                                  '913859800', 'CHROME'],
-          ['ACCEDA',                           'Exceso cabida',                                                                    'https://acceda.justicia.es/admin/login',                                                                                                                    '',          'CHROME'],
-          ['CALCULADORA 988',                  'Calculadora · Formación',                                                          'https://calculadora988.justicia.es',                                                                                                                        '913859800', 'EDGE/CHROME'],
-          ['SGG',                              'Sistema de gestión gubernativa',                                                   'https://sgg.pnj.cgpj.es/solutions/user_login.aspx',                                                                                                         '',          'CHROME'],
-          ['PRONTUARIO',                       'Auxilio Judicial Internacional',                                                   'http://www.prontuario.org/portal/site/prontuario',                                                                                                          '',          'CHROME'],
-          ['PORTAFIRMAS (Ministerio Justicia)','Portafirmas (Ministerio de Justicia)',                                             'https://portafirmas.justicia.es/',                                                                                                                          '913859800', 'CHROME'],
-          ['ACCEDA',                           '',                                                                                 'https://acceda.justicia.es/',                                                                                                                               '',          ''],
-          ['AIDA',                             'ADIA · Anonimizado de documentos',                                                 'https://www.administraciondejusticia.gob.es/-/adia-anonimizado-de-documentos',                                                                              '',          ''],
-          ['Tablón Edictal Judicial Único',    '',                                                                                 'https://adia.justicia.es/',                                                                                                                                 '',          '']
-        ]
-      },
-      {
-        title: 'Registro concursal',
-        type: 'table',
-        headers: ['Aplicación', 'Descripción', 'URL', 'Teléfono', 'Navegador'],
-        rows: [
-          ['REGISTRO',          'Página de Registradores',                'https://www.registradores.org/',     '912701699', 'EDGE - MODO IE'],
-          ['REGISTRO CONCURSAL','Registro Público Concursal (Mercantil)', 'https://www.publicidadconcursal.es/','912701699', 'CHROME']
-        ]
-      },
-      {
-        title: 'Consejo / SS · CGPJ',
-        type: 'table',
-        headers: ['Aplicación', 'Descripción', 'URL', 'Teléfono', 'Navegador'],
-        rows: [
-          ['CEX',  'Consultas Externas',                'https://cex.portal.ss',                                                                                            '913902700', 'CHROME'],
-          ['CEXIL','Cexil',                             'https://cexsilweb.portal.ss/bienvenida_cexsil.html',                                                                '913902800', 'CHROME'],
-          ['PNJ',  'Punto Neutro',                      'https://busprod.pnj.cgpj.es/portal/',                                                                              '',          'CHROME'],
-          ['CGPJ', 'Consejo General del Poder Judicial','https://www.poderjudicial.es/cgpj/es/Poder_Judicial/Tribunales_Superiores_de_Justicia/TSJ_Madrid',                  '',          'CHROME']
-        ]
-      },
-      {
-        title: 'Otros (Correos, Santander, Aranzadi)',
-        type: 'table',
-        headers: ['Aplicación', 'Descripción', 'URL', 'Teléfono', 'Navegador'],
-        rows: [
-          ['NEXO',    'Burofax',                                  'https://nexea.es/cmadridnexo/home.html',                  '917482700', 'CHROME'],
-          ['CDJC',    'Cuenta de depósitos judiciales y consignaciones', 'https://ccd.mju.es',                              '900100825', 'CHROME'],
-          ['GANES',   '',                                         'https://www.correos.es/es/es/particulares',               '902197197', 'CHROME'],
-          ['ARANZADI','ARANZADI · Base de datos jurídica',        'https://soluciones.aranzadilaley.es/content/Inicio.aspx', '',          'CHROME']
-        ]
-      }
-    ]
+async function initApp() {
+  document.getElementById('content').innerHTML = '<div class="empty">Conectando con Firebase y descargando base de datos... ⏳</div>';
+  try {
+    const querySnapshot = await getDocs(collection(db, "guias_ipc"));
+    querySnapshot.forEach((doc) => {
+      LOCAL_DATA[doc.id] = doc.data();
+    });
+    
+    buildSearchIndex();
+    renderPage('home');
+  } catch (error) {
+    console.error("Error crítico inicializando base de datos:", error);
+    document.getElementById('content').innerHTML = '<div class="empty" style="color:var(--danger)">Error al conectar con la nube. Verifica la conexión o las reglas de Firebase.</div>';
   }
-};
+}
 
 /* ============================================================
-   FUNCIÓN DE MIGRACIÓN A FIREBASE 
+   RENDERIZADO DE COMPONENTES INTERFACES
    ============================================================ */
-async function migrarDatosAFirebase() {
-  const btn = document.getElementById('btnMigrar');
-  btn.textContent = '⏳ Migrando datos...';
-  btn.style.background = '#d4af37'; // Color de carga (dorado)
-  
-  console.log("Iniciando volcado de datos a Firebase...");
-  
-  for (const [clave, datosOriginales] of Object.entries(DATA)) {
-    try {
-      // 1. Clonar los datos para no modificar tu variable local
-      let datosSaneados = JSON.parse(JSON.stringify(datosOriginales));
-
-      // 2. Buscar si hay tablas y transformar los arrays anidados en objetos
-      if (datosSaneados.sections) {
-        datosSaneados.sections.forEach(sec => {
-          if (sec.type === 'table' && Array.isArray(sec.rows)) {
-            // Convierte ['Valor1', 'Valor2'] en { 0: 'Valor1', 1: 'Valor2' }
-            sec.rows = sec.rows.map(fila => Object.assign({}, fila));
-          }
-        });
-      }
-
-      // 3. Enviar a Firebase
-      const docRef = doc(db, "guias_ipc", clave);
-      await setDoc(docRef, datosSaneados);
-      console.log(`✅ Subido correctamente: ${clave}`);
-    } catch (error) {
-      console.error(`❌ Error subiendo ${clave}:`, error);
-      btn.textContent = '❌ Error en la migración';
-      btn.style.background = 'var(--danger)';
-      return;
-    }
-  }
-  
-  console.log("🚀 ¡Volcado completado!");
-  btn.textContent = '✅ Migración Completada';
-  btn.style.background = 'var(--success)';
-  btn.disabled = true;
-  alert("Los datos se han convertido y copiado correctamente a tu base de datos de Firebase.");
-}
-
-// Escuchamos el clic en el botón nuevo
-document.getElementById('btnMigrar').addEventListener('click', migrarDatosAFirebase);
-
-/* ============================================================
-   RENDERIZADO ORIGINAL (Para que sigas viendo la web normal)
-   ============================================================ */
-function linkify(text) {
-  if (text === null || text === undefined) return '';
-  let html = escapeHTML(String(text));
-  html = html.replace(/mailto:([\w._%+-]+@[\w.-]+\.[A-Za-z]{2,})/g, '<a class="mail" href="mailto:$1">$1</a>');
-  html = html.replace(/(?<![\w@.:/])([\w._%+-]+@[\w.-]+\.[A-Za-z]{2,})(?![\w@])/g, '<a class="mail" href="mailto:$1">$1</a>');
-  html = html.replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-  html = html.replace(/(?<!\d)(\b[69]\d{8}\b)(?!\d)/g, '<a class="tel" href="tel:$1">$1</a>');
-  return html;
-}
-
-function escapeHTML(str) {
-  return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-}
-
-function renderTable(headers, rows) {
+function renderTable(headers, rows, pageKey, sectionIndex) {
   let html = '<div class="table-wrap"><table>';
   if (headers && headers.length) {
-    html += '<thead><tr>' + headers.map(h => `<th>${escapeHTML(h)}</th>`).join('') + '</tr></thead>';
+    html += '<thead><tr>' + headers.map(h => `<th>${escapeHTML(h)}</th>`).join('');
+    html += '<th style="text-align: right; width: 75px;">Gestión</th></tr></thead>';
   }
   html += '<tbody>';
-  for (const row of rows) {
-    html += '<tr>' + row.map(cell => {
+  
+  for (let i = 0; i < (rows || []).length; i++) {
+    const rowObj = rows[i];
+    const rowArray = Object.values(rowObj); 
+    
+    html += '<tr>' + rowArray.map(cell => {
       const empty = cell === '' || cell === null || cell === undefined;
       let finalCell = linkify(cell);
       if (cell === 'CHROME') finalCell = '<span class="pill chrome">CHROME</span>';
@@ -1330,31 +604,60 @@ function renderTable(headers, rows) {
       else if (cell === 'EDGE/CHROME') finalCell = '<span class="pill chrome">EDGE/CHROME</span>';
       else if (cell === 'EDGE - MODO IE') finalCell = '<span class="pill edge">EDGE - MODO IE</span>';
       return `<td${empty ? ' class="muted"' : ''}>${finalCell}</td>`;
-    }).join('') + '</tr>';
+    }).join('');
+
+    html += `
+      <td style="text-align: right; vertical-align: middle; white-space: nowrap;">
+        <button class="btn-action-ui" onclick="editarFila('${pageKey}', ${sectionIndex}, ${i})" title="Editar Fila">✏️</button>
+        <button class="btn-action-ui" onclick="eliminarFila('${pageKey}', ${sectionIndex}, ${i})" title="Eliminar Fila" style="margin-left: 6px;">🗑️</button>
+      </td>
+    </tr>`;
   }
   html += '</tbody></table></div>';
+  
+  // Botón dinámico para añadir nueva fila a esta tabla específica
+  html += `<button onclick="añadirFilaNueva('${pageKey}', ${sectionIndex})" style="background: transparent; border: 1px dashed var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 11px; margin-bottom: 14px; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px;">+ Añadir Fila</button>`;
+  
   return html;
 }
 
-function renderCards(cards) {
+function renderCards(cards, pageKey, sectionIndex) {
   let html = '<div class="two-col"><div>';
-  const mid = Math.ceil(cards.length / 2);
-  const col1 = cards.slice(0, mid);
-  const col2 = cards.slice(mid);
-  for (const c of col1) {
-    html += `<div class="card"><h4>${escapeHTML(c.title)}</h4><div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:var(--text)">${linkify(c.body)}</div></div>`;
+  const mid = Math.ceil((cards || []).length / 2);
+  const col1 = (cards || []).slice(0, mid);
+  const col2 = (cards || []).slice(mid);
+  
+  function createCardHtml(c, index) {
+    return `
+      <div class="card" style="position: relative; padding-top: 24px;">
+        <div style="position: absolute; top: 10px; right: 12px; display: flex; gap: 4px;">
+          <button class="btn-action-ui" onclick="editarCard('${pageKey}', ${sectionIndex}, ${index})" title="Editar">✏️</button>
+          <button class="btn-action-ui" onclick="eliminarCard('${pageKey}', ${sectionIndex}, ${index})" title="Eliminar">🗑️</button>
+        </div>
+        <h4>${escapeHTML(c.title)}</h4>
+        <div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:var(--text)">${linkify(c.body)}</div>
+      </div>`;
   }
-  html += '</div><div>';
-  for (const c of col2) {
-    html += `<div class="card"><h4>${escapeHTML(c.title)}</h4><div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:var(--text)">${linkify(c.body)}</div></div>`;
+
+  let htmlCol1 = '';
+  for (let i = 0; i < col1.length; i++) {
+    htmlCol1 += createCardHtml(col1[i], i);
   }
-  html += '</div></div>';
+  
+  let htmlCol2 = '';
+  for (let i = 0; i < col2.length; i++) {
+    htmlCol2 += createCardHtml(col2[i], mid + i);
+  }
+
+  html = `<div class="two-col"><div>${htmlCol1}</div><div>${htmlCol2}</div></div>`;
+  html += `<button onclick="añadirCardNueva('${pageKey}', ${sectionIndex})" style="background: transparent; border: 1px dashed var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 11px; margin-bottom: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px;">+ Añadir Tarjeta</button>`;
   return html;
 }
 
-function renderPage(key) {
-  const page = DATA[key];
+window.renderPage = function(key) {
+  const page = LOCAL_DATA[key];
   if (!page) return;
+  
   document.getElementById('pageTitle').textContent = page.title;
   document.getElementById('pageMeta').textContent  = page.meta || '';
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.target === key));
@@ -1374,12 +677,14 @@ function renderPage(key) {
     return;
   }
 
-  for (const sec of (page.sections || [])) {
+  for (let s = 0; s < (page.sections || []).length; s++) {
+    const sec = page.sections[s];
     html += `<div class="section"><div class="section-title">${escapeHTML(sec.title)}</div>`;
-    if (sec.type === 'table') html += renderTable(sec.headers, sec.rows);
-    else if (sec.type === 'cards') html += renderCards(sec.cards);
+    if (sec.type === 'table') html += renderTable(sec.headers, sec.rows, key, s);
+    else if (sec.type === 'cards') html += renderCards(sec.cards, key, s);
     html += '</div>';
   }
+  
   if (page.notes && page.notes.length) {
     html += '<div class="notes"><span class="label">Notas</span>';
     for (const n of page.notes) html += `<p>${linkify(n)}</p>`;
@@ -1389,7 +694,328 @@ function renderPage(key) {
   document.getElementById('main').scrollTop = 0;
 }
 
-// Inicialización de la interfaz estática
+/* ============================================================
+   LÓGICA ADMINISTRATIVA (EDITAR, ELIMINAR Y AÑADIR NUEVOS)
+   ============================================================ */
+const modal = document.getElementById('editModal');
+
+function abrirModal() { modal.style.display = 'flex'; }
+function cerrarModal() { modal.style.display = 'none'; }
+
+document.getElementById('closeModalBtn').addEventListener('click', cerrarModal);
+
+// ---- OPERACIONES SOBRE TABLAS ----
+window.editarFila = function(pageKey, sectionIndex, rowIndex) {
+  currentEditPage = pageKey;
+  currentEditSection = sectionIndex;
+  currentEditIndex = rowIndex;
+  currentEditType = 'row';
+
+  const section = LOCAL_DATA[pageKey].sections[sectionIndex];
+  const headers = section.headers;
+  const rowObj = section.rows[rowIndex];
+  
+  document.getElementById('modalTitle').textContent = `Editar Fila — Sección: ${section.title}`;
+  
+  let bodyHtml = '';
+  headers.forEach((header, idx) => {
+    const value = rowObj[idx] || '';
+    bodyHtml += `
+      <div class="modal-field">
+        <label>${escapeHTML(header)}</label>
+        <textarea class="modal-input" data-index="${idx}" rows="2">${escapeHTML(value)}</textarea>
+      </div>`;
+  });
+  
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  abrirModal();
+}
+
+window.añadirFilaNueva = function(pageKey, sectionIndex) {
+  currentEditPage = pageKey;
+  currentEditSection = sectionIndex;
+  currentEditType = 'new_row';
+
+  const section = LOCAL_DATA[pageKey].sections[sectionIndex];
+  const headers = section.headers;
+  
+  document.getElementById('modalTitle').textContent = `Añadir Nueva Fila — Sección: ${section.title}`;
+  
+  let bodyHtml = '';
+  headers.forEach((header, idx) => {
+    bodyHtml += `
+      <div class="modal-field">
+        <label>${escapeHTML(header)}</label>
+        <textarea class="modal-input" data-index="${idx}" rows="2"></textarea>
+      </div>`;
+  });
+  
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  abrirModal();
+}
+
+window.eliminarFila = async function(pageKey, sectionIndex, rowIndex) {
+  if (!confirm("¿Estás seguro de que deseas eliminar esta fila de datos de forma permanente?")) return;
+  
+  LOCAL_DATA[pageKey].sections[sectionIndex].rows.splice(rowIndex, 1);
+  await guardarEnFirebase(pageKey);
+}
+
+// ---- OPERACIONES SOBRE TARJETAS (CARDS) ----
+window.editarCard = function(pageKey, sectionIndex, cardIndex) {
+  currentEditPage = pageKey;
+  currentEditSection = sectionIndex;
+  currentEditIndex = cardIndex;
+  currentEditType = 'card';
+
+  const card = LOCAL_DATA[pageKey].sections[sectionIndex].cards[cardIndex];
+  document.getElementById('modalTitle').textContent = 'Editar Tarjeta / Plantilla';
+  
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-field">
+      <label>Título de la Incidencia</label>
+      <input type="text" id="cardTitleInput" value="${escapeHTML(card.title)}">
+    </div>
+    <div class="modal-field">
+      <label>Datos Mínimos / Cuerpo del Mensaje</label>
+      <textarea id="cardBodyInput" rows="10">${escapeHTML(card.body)}</textarea>
+    </div>`;
+  
+  abrirModal();
+}
+
+window.añadirCardNueva = function(pageKey, sectionIndex) {
+  currentEditPage = pageKey;
+  currentEditSection = sectionIndex;
+  currentEditType = 'new_card';
+
+  document.getElementById('modalTitle').textContent = 'Añadir Nueva Tarjeta / Plantilla';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-field">
+      <label>Título de la Incidencia</label>
+      <input type="text" id="cardTitleInput" placeholder="Ej: OUTLOOK WEB">
+    </div>
+    <div class="modal-field">
+      <label>Datos Mínimos / Cuerpo del Mensaje</label>
+      <textarea id="cardBodyInput" rows="10" placeholder="ASUNTO – DATOS MÍNIMOS 1N:\n1. Descripción..."></textarea>
+    </div>`;
+  
+  abrirModal();
+}
+
+window.eliminarCard = async function(pageKey, sectionIndex, cardIndex) {
+  if (!confirm("¿Estás seguro de que deseas eliminar esta tarjeta de forma permanente?")) return;
+  
+  LOCAL_DATA[pageKey].sections[sectionIndex].cards.splice(cardIndex, 1);
+  await guardarEnFirebase(pageKey);
+}
+
+// ---- GUARDADO MAESTRO EN CLOUD FIRESTORE ----
+document.getElementById('saveModalBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('saveModalBtn');
+  btn.textContent = 'Guardando... ⏳';
+  btn.disabled = true;
+
+  try {
+    if (currentEditType === 'row') {
+      const rowObj = {};
+      const inputs = document.querySelectorAll('.modal-input');
+      inputs.forEach(input => {
+        const idx = input.dataset.index;
+        rowObj[idx] = input.value;
+      });
+      LOCAL_DATA[currentEditPage].sections[currentEditSection].rows[currentEditIndex] = rowObj;
+      
+    } else if (currentEditType === 'new_row') {
+      const rowObj = {};
+      const inputs = document.querySelectorAll('.modal-input');
+      inputs.forEach(input => {
+        const idx = input.dataset.index;
+        rowObj[idx] = input.value;
+      });
+      if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].rows) {
+        LOCAL_DATA[currentEditPage].sections[currentEditSection].rows = [];
+      }
+      LOCAL_DATA[currentEditPage].sections[currentEditSection].rows.push(rowObj);
+
+    } else if (currentEditType === 'card') {
+      LOCAL_DATA[currentEditPage].sections[currentEditSection].cards[currentEditIndex] = {
+        title: document.getElementById('cardTitleInput').value,
+        body: document.getElementById('cardBodyInput').value
+      };
+
+    } else if (currentEditType === 'new_card') {
+      if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].cards) {
+        LOCAL_DATA[currentEditPage].sections[currentEditSection].cards = [];
+      }
+      LOCAL_DATA[currentEditPage].sections[currentEditSection].cards.push({
+        title: document.getElementById('cardTitleInput').value,
+        body: document.getElementById('cardBodyInput').value
+      });
+    }
+
+    await guardarEnFirebase(currentEditPage);
+    cerrarModal();
+
+  } catch (err) {
+    console.error("Error al salvar cambios en la interfaz:", err);
+    alert("No se pudieron guardar los cambios de forma asíncrona.");
+  } finally {
+    btn.textContent = 'Guardar Cambios';
+    btn.disabled = false;
+  }
+});
+
+async function guardarEnFirebase(pageKey) {
+  const docRef = doc(db, "guias_ipc", pageKey);
+  await setDoc(docRef, LOCAL_DATA[pageKey]);
+  
+  // Sincronizar motor de búsqueda local y refrescar la vista actual del agente
+  buildSearchIndex();
+  renderPage(pageKey);
+}
+
+/* ============================================================
+   MOTOR DE BÚSQUEDA GLOBAL ASÍNCRONO
+   ============================================================ */
+function buildSearchIndex() {
+  SEARCH_INDEX = [];
+  for (const [key, page] of Object.entries(LOCAL_DATA)) {
+    if (key === 'home') continue;
+    for (const sec of (page.sections || [])) {
+      if (sec.type === 'table' && sec.rows) {
+        for (const row of sec.rows) {
+          const rowArray = Object.values(row);
+          SEARCH_INDEX.push({
+            page: key, pageTitle: page.title, section: sec.title, type: 'row',
+            headers: sec.headers, row: rowArray, text: rowArray.join(' ').toLowerCase()
+          });
+        }
+      } else if (sec.type === 'cards' && sec.cards) {
+        for (const c of sec.cards) {
+          SEARCH_INDEX.push({
+            page: key, pageTitle: page.title, section: sec.title, type: 'card',
+            title: c.title, body: c.body, text: (c.title + ' ' + c.body).toLowerCase()
+          });
+        }
+      }
+    }
+    if (page.notes) {
+      for (const n of page.notes) {
+        SEARCH_INDEX.push({
+          page: key, pageTitle: page.title, section: 'Notas', type: 'note',
+          body: n, text: n.toLowerCase()
+        });
+      }
+    }
+  }
+}
+
+function renderSearchResults(query) {
+  const term = query.trim().toLowerCase();
+  if (!term) { renderPage(currentPage || 'home'); return; }
+
+  const results = SEARCH_INDEX.filter(r => r.text.includes(term));
+  document.getElementById('pageTitle').textContent = `Búsqueda: "${query}"`;
+  document.getElementById('pageMeta').textContent  = `${results.length} resultado${results.length !== 1 ? 's' : ''}`;
+
+  if (!results.length) {
+    document.getElementById('content').innerHTML = '<div class="empty">Sin resultados de coincidencia.</div>';
+    return;
+  }
+
+  const groups = {};
+  for (const r of results) {
+    if (!groups[r.page]) groups[r.page] = { pageTitle: r.pageTitle, items: [] };
+    groups[r.page].items.push(r);
+  }
+
+  let html = '';
+  for (const [pageKey, group] of Object.entries(groups)) {
+    html += `<div class="result-section">
+      <div class="section-title">
+        <span class="result-tag" data-go="${pageKey}">${escapeHTML(group.pageTitle)}</span>
+        <span style="color:var(--text-muted);font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${group.items.length} coincidencia${group.items.length !== 1 ? 's' : ''}</span>
+      </div>`;
+
+    const bySection = {};
+    for (const it of group.items) {
+      if (!bySection[it.section]) bySection[it.section] = [];
+      bySection[it.section].push(it);
+    }
+
+    for (const [secName, items] of Object.entries(bySection)) {
+      if (items.every(i => i.type === 'row')) {
+        const headers = items[0].headers;
+        html += `<h4 style="font-size:12px;color:var(--text-dim);margin:10px 0 6px;font-weight:500">${escapeHTML(secName)}</h4>`;
+        html += '<div class="table-wrap"><table>';
+        if (headers && headers.length) {
+          html += '<thead><tr>' + headers.map(h => `<th>${escapeHTML(h)}</th>`).join('') + '</tr></thead>';
+        }
+        html += '<tbody>';
+        for (const it of items) {
+          html += '<tr>' + it.row.map(cell => {
+            const empty = cell === '' || cell === null || cell === undefined;
+            const linked = linkify(cell);
+            let finalCell = highlightInLinkedHtml(linked, term);
+            if (cell === 'CHROME') finalCell = '<span class="pill chrome">CHROME</span>';
+            else if (cell === 'EDGE') finalCell = '<span class="pill edge">EDGE</span>';
+            return `<td${empty ? ' class="muted"' : ''}>${finalCell}</td>`;
+          }).join('') + '</tr>';
+        }
+        html += '</tbody></table></div>';
+      } else {
+        html += `<h4 style="font-size:12px;color:var(--text-dim);margin:10px 0 6px;font-weight:500">${escapeHTML(secName)}</h4>`;
+        for (const it of items) {
+          if (it.type === 'card') {
+            html += `<div class="card"><h4>${escapeHTML(it.title)}</h4><div style="white-space:pre-wrap;font-size:13px;line-height:1.6">${highlightInLinkedHtml(linkify(it.body), term)}</div></div>`;
+          } else if (it.type === 'note') {
+            html += `<div class="notes"><p>${highlightInLinkedHtml(linkify(it.body), term)}</p></div>`;
+          }
+        }
+      }
+    }
+    html += '</div>';
+  }
+  
+  document.getElementById('content').innerHTML = html;
+  document.querySelectorAll('.result-tag').forEach(t => {
+    t.addEventListener('click', () => {
+      document.getElementById('searchInput').value = '';
+      currentPage = t.dataset.go;
+      renderPage(currentPage);
+    });
+  });
+}
+
+function highlightInLinkedHtml(html, term) {
+  if (!term) return html;
+  try {
+    const re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    return html.split(/(<[^>]+>)/).map(part => {
+      if (part.startsWith('<')) return part;
+      return part.replace(re, '<mark>$1</mark>');
+    }).join('');
+  } catch (e) { return html; }
+}
+
+/* ============================================================
+   UTILIDADES COMUNES Y ESCUCHADORES DE EVENTOS
+   ============================================================ */
+function linkify(text) {
+  if (text === null || text === undefined) return '';
+  let html = escapeHTML(String(text));
+  html = html.replace(/mailto:([\w._%+-]+@[\w.-]+\.[A-Za-z]{2,})/g, '<a class="mail" href="mailto:$1">$1</a>');
+  html = html.replace(/(?<![\w@.:/])([\w._%+-]+@[\w.-]+\.[A-Za-z]{2,})(?![\w@])/g, '<a class="mail" href="mailto:$1">$1</a>');
+  html = html.replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  html = html.replace(/(?<!\d)(\b[69]\d{8}\b)(?!\d)/g, '<a class="tel" href="tel:$1">$1</a>');
+  return html;
+}
+
+function escapeHTML(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
 let currentPage = 'home';
 document.querySelectorAll('.nav-item').forEach(n => {
   n.addEventListener('click', () => {
@@ -1398,10 +1024,33 @@ document.querySelectorAll('.nav-item').forEach(n => {
     renderPage(currentPage);
   });
 });
-renderPage('home');
+
+const searchInput = document.getElementById('searchInput');
+let searchTimer;
+searchInput.addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    const q = e.target.value;
+    if (q.trim()) renderSearchResults(q);
+    else renderPage(currentPage);
+  }, 120);
+});
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  }
+  if (e.key === 'Escape' && document.activeElement === searchInput) {
+    searchInput.value = '';
+    renderPage(currentPage);
+    searchInput.blur();
+  }
+});
+
+// Lanzar inicio de aplicación asíncrona
+initApp();
 </script>
 </body>
 </html>
-
-
-
