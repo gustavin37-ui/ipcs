@@ -1252,7 +1252,7 @@ const DATA = {
 };
 
 /* ============================================================
-   FUNCIÓN DE MIGRACIÓN A FIREBASE (El "Truco")
+   FUNCIÓN DE MIGRACIÓN A FIREBASE 
    ============================================================ */
 async function migrarDatosAFirebase() {
   const btn = document.getElementById('btnMigrar');
@@ -1261,10 +1261,24 @@ async function migrarDatosAFirebase() {
   
   console.log("Iniciando volcado de datos a Firebase...");
   
-  for (const [clave, datos] of Object.entries(DATA)) {
+  for (const [clave, datosOriginales] of Object.entries(DATA)) {
     try {
+      // 1. Clonar los datos para no modificar tu variable local
+      let datosSaneados = JSON.parse(JSON.stringify(datosOriginales));
+
+      // 2. Buscar si hay tablas y transformar los arrays anidados en objetos
+      if (datosSaneados.sections) {
+        datosSaneados.sections.forEach(sec => {
+          if (sec.type === 'table' && Array.isArray(sec.rows)) {
+            // Convierte ['Valor1', 'Valor2'] en { 0: 'Valor1', 1: 'Valor2' }
+            sec.rows = sec.rows.map(fila => Object.assign({}, fila));
+          }
+        });
+      }
+
+      // 3. Enviar a Firebase
       const docRef = doc(db, "guias_ipc", clave);
-      await setDoc(docRef, datos);
+      await setDoc(docRef, datosSaneados);
       console.log(`✅ Subido correctamente: ${clave}`);
     } catch (error) {
       console.error(`❌ Error subiendo ${clave}:`, error);
@@ -1278,7 +1292,7 @@ async function migrarDatosAFirebase() {
   btn.textContent = '✅ Migración Completada';
   btn.style.background = 'var(--success)';
   btn.disabled = true;
-  alert("Los datos se han copiado correctamente a tu base de datos de Firebase.");
+  alert("Los datos se han convertido y copiado correctamente a tu base de datos de Firebase.");
 }
 
 // Escuchamos el clic en el botón nuevo
