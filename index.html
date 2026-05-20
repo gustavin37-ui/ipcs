@@ -395,7 +395,7 @@
   .modal-content {
     background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg);
     width: 600px; max-width: 95%; padding: 22px; box-shadow: var(--shadow);
-    transition: width 0.3s ease; /* Transición suave al ensanchar */
+    transition: width 0.3s ease;
   }
   .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-soft); padding-bottom: 10px; }
   .modal-header h3 { color: var(--accent); font-size: 15px; font-weight: 600; }
@@ -404,10 +404,10 @@
   .modal-body { margin-bottom: 20px; display: flex; flex-direction: column; gap: 14px; max-height: 65vh; overflow-y: auto; padding-right: 4px; }
   .modal-field { display: flex; flex-direction: column; gap: 5px; }
   .modal-field label { color: var(--text-dim); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  .modal-field input, .modal-field textarea {
+  .modal-field input, .modal-field textarea, .modal-field select {
     background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 9px 12px; border-radius: var(--radius); font-family: inherit; font-size: 13px; outline: none; transition: border-color 0.15s;
   }
-  .modal-field input:focus, .modal-field textarea:focus { border-color: var(--accent); }
+  .modal-field input:focus, .modal-field textarea:focus, .modal-field select:focus { border-color: var(--accent); }
   .modal-footer { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-soft); padding-top: 14px; }
   .btn-save { background: var(--accent); color: #1a1a1a; padding: 8px 18px; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; font-size: 13px; transition: background 0.15s; }
   .btn-save:hover { background: var(--accent-hover); }
@@ -422,12 +422,11 @@
   .bulk-input:focus { background: rgba(255,255,255,0.03); }
   
   /* ========================================================
-     SISTEMA DE ROLES CSS (Magia para ocultar edición) 
+     SISTEMA DE ROLES CSS
      ======================================================== */
   .admin-only {
     display: none !important;
   }
-  
   body.is-admin .admin-only {
     display: inline-flex !important;
   }
@@ -755,6 +754,7 @@ window.renderPage = function(key) {
     return;
   }
 
+  // Renderizar las secciones de la página
   for (let s = 0; s < (page.sections || []).length; s++) {
     const sec = page.sections[s];
     html += `<div class="section">
@@ -765,6 +765,8 @@ window.renderPage = function(key) {
           <button onclick="editarTablaCompleta('${key}', ${s})" style="background:transparent; border:none; color:var(--info); cursor:pointer; font-size:13px; opacity:0.8; transition:opacity 0.2s;" title="Edición masiva de todas las celdas (Modo Excel)" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">📝 Editar Datos</button>
           
           <button onclick="gestionarTabla('${key}', ${s})" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:13px; opacity:0.6; transition:opacity 0.2s;" title="Modificar estructura de Columnas/Sección" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">⚙️ Configurar</button>
+          
+          <button onclick="eliminarSeccion('${key}', ${s})" style="background:transparent; border:none; color:var(--danger); cursor:pointer; font-size:14px; opacity:0.6; transition:opacity 0.2s;" title="Eliminar Sección Completa" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">🗑️</button>
         </div>
 
       </div>`;
@@ -775,11 +777,21 @@ window.renderPage = function(key) {
     html += '</div>';
   }
   
+  // BOTÓN DE CREACIÓN DE SECCIONES (Aparecerá siempre que seas admin, ideal para categorías vacías)
+  html += `
+    <div class="admin-only" style="margin-top: 24px; text-align: center;">
+      <button onclick="añadirSeccionNueva('${key}')" style="background: transparent; border: 1px dashed var(--text-muted); color: var(--text-dim); padding: 10px 20px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; width: 100%; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.color='var(--accent)';" onmouseout="this.style.borderColor='var(--text-muted)'; this.style.color='var(--text-dim)';">
+        ➕ Añadir Nueva Sección
+      </button>
+    </div>
+  `;
+
   if (page.notes && page.notes.length) {
-    html += '<div class="notes"><span class="label">Notas</span>';
+    html += '<div class="notes" style="margin-top: 20px;"><span class="label">Notas</span>';
     for (const n of page.notes) html += `<p>${linkify(n)}</p>`;
     html += '</div>';
   }
+  
   document.getElementById('content').innerHTML = html;
   document.getElementById('main').scrollTop = 0;
 }
@@ -793,13 +805,39 @@ const modalContentBox = document.getElementById('modalContentBox');
 function abrirModal() { modal.style.display = 'flex'; }
 function cerrarModal() { 
   modal.style.display = 'none'; 
-  // Restaurar tamaño normal por si venimos de la vista Excel
   modalContentBox.style.width = '600px';
   modalContentBox.style.maxWidth = '95%';
 }
 document.getElementById('closeModalBtn').addEventListener('click', cerrarModal);
 
-// ---- 1. EDICIÓN MASIVA (MODO EXCEL) ----
+// ---- 1. CREACIÓN / ELIMINACIÓN DE SECCIONES DESDE CERO ----
+window.añadirSeccionNueva = function(pageKey) {
+  currentEditPage = pageKey;
+  currentEditType = 'new_section';
+  document.getElementById('modalTitle').textContent = 'Añadir Nueva Sección';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-field">
+      <label>Título de la Sección</label>
+      <input type="text" id="newSectionTitle" placeholder="Ej: Nueva Normativa o Contactos">
+    </div>
+    <div class="modal-field" style="margin-top: 10px;">
+      <label>Tipo de Contenido</label>
+      <select id="newSectionType">
+        <option value="table">Tabla de Datos (Filas y Columnas)</option>
+        <option value="cards">Tarjetas (Plantillas / Textos Largos)</option>
+      </select>
+    </div>
+  `;
+  abrirModal();
+}
+
+window.eliminarSeccion = async function(pageKey, sectionIndex) {
+  if (!confirm("⚠️ ATENCIÓN: ¿Estás seguro de que deseas borrar TODA esta sección y todos los datos que contiene? Esta acción no se puede deshacer.")) return;
+  LOCAL_DATA[pageKey].sections.splice(sectionIndex, 1);
+  await guardarEnFirebase(pageKey);
+}
+
+// ---- 2. EDICIÓN MASIVA (MODO EXCEL) ----
 window.editarTablaCompleta = function(pageKey, sectionIndex) {
   currentEditPage = pageKey;
   currentEditSection = sectionIndex;
@@ -811,7 +849,6 @@ window.editarTablaCompleta = function(pageKey, sectionIndex) {
 
   document.getElementById('modalTitle').textContent = `Edición Masiva — ${sec.title}`;
   
-  // Ensanchar la ventana para la cuadrícula
   modalContentBox.style.width = '95vw';
   modalContentBox.style.maxWidth = '1400px';
 
@@ -842,7 +879,7 @@ window.editarTablaCompleta = function(pageKey, sectionIndex) {
 
   html += `</tbody></table></div>
   <button onclick="añadirFilaBulk()" style="background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:6px 12px; border-radius:var(--radius); cursor:pointer; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">+ Añadir Fila</button>
-  <div style="margin-top:10px; font-size: 11px; color: var(--info);">💡 Tip: Puedes modificar varias celdas a la vez. Las cajas de texto crecen si necesitas escribir más.</div>
+  <div style="margin-top:10px; font-size: 11px; color: var(--info);">💡 Tip: Puedes copiar celdas desde Excel y pegarlas aquí directamente usando esta vista de cuadrícula.</div>
   `;
 
   document.getElementById('modalBody').innerHTML = html;
@@ -868,7 +905,7 @@ window.añadirFilaBulk = function() {
 }
 
 
-// ---- 2. ADMINISTRACIÓN DE TABLAS (CABECERAS / COLUMNAS) ----
+// ---- 3. CONFIGURACIÓN DE TABLAS (CABECERAS / COLUMNAS) ----
 window.gestionarTabla = function(pageKey, sectionIndex) {
   currentEditPage = pageKey;
   currentEditSection = sectionIndex;
@@ -1075,7 +1112,20 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
   btn.disabled = true;
 
   try {
-    if (currentEditType === 'bulk_table') {
+    if (currentEditType === 'new_section') {
+      if (!LOCAL_DATA[currentEditPage].sections) LOCAL_DATA[currentEditPage].sections = [];
+      
+      const title = document.getElementById('newSectionTitle').value || 'Nueva Sección';
+      const type = document.getElementById('newSectionType').value;
+      
+      if (type === 'table') {
+        LOCAL_DATA[currentEditPage].sections.push({ title: title, type: 'table', headers: ['Columna 1', 'Columna 2'], rows: [] });
+      } else {
+        LOCAL_DATA[currentEditPage].sections.push({ title: title, type: 'cards', cards: [] });
+      }
+      await guardarEnFirebase(currentEditPage);
+
+    } else if (currentEditType === 'bulk_table') {
       const trs = document.querySelectorAll('.bulk-row');
       const newRows = [];
       trs.forEach(tr => {
