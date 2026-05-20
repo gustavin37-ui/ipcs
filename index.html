@@ -1060,7 +1060,7 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       }
       await guardarEnFirebase(currentEditPage);
 
-    } else if (currentEditType === 'menu_manager') {
+} else if (currentEditType === 'menu_manager') {
       const rows = document.querySelectorAll('.menu-edit-row');
       const newCards = [];
       const batchPromises = []; 
@@ -1073,19 +1073,32 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
 
         if (id && title) {
           newCards.push({ id, icon, title, desc });
+          
           if (!LOCAL_DATA[id]) {
+            // Si el ID no existe, creamos la categoría de cero
             LOCAL_DATA[id] = { title: title, meta: desc, sections: [] };
             batchPromises.push(setDoc(doc(db, "guias_ipc", id), LOCAL_DATA[id]));
+          } else {
+            // SOLUCIÓN: Si la categoría ya existe, actualizamos su Título y Meta
+            if (LOCAL_DATA[id].title !== title || LOCAL_DATA[id].meta !== desc) {
+              LOCAL_DATA[id].title = title;
+              LOCAL_DATA[id].meta = desc;
+              // Añadimos la actualización de esta página a la cola de guardado
+              batchPromises.push(setDoc(doc(db, "guias_ipc", id), LOCAL_DATA[id]));
+            }
           }
         }
       });
 
+      // 1. Guardamos el menú / portada
       LOCAL_DATA['home'].cards = newCards;
       await setDoc(doc(db, "guias_ipc", "home"), LOCAL_DATA['home']);
+      
+      // 2. Ejecutamos todas las actualizaciones de títulos en paralelo
       if (batchPromises.length > 0) await Promise.all(batchPromises);
 
       renderSidebar(); 
-      renderPage('home'); 
+      renderPage(currentPage); // Recargamos la página actual para que el cambio sea visible al instante
     }
 
     cerrarModal();
