@@ -11,277 +11,7 @@
 <style>
   :root {
     --bg: #0f1419;
-    --bg-elev: #1a2128;<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Herramientas UNIR</title>
-
-<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-
-<style>
-  :root {
-    --bg: #0f1419;
     --bg-elev: #1a2128;
-    --bg-card: #232c36;
-    --bg-hover: #2d3743;
-    --border: #2f3a47;
-    --border-soft: #243140;
-    --text: #e6ebf1;
-    --text-dim: #9aa7b4;
-    --text-muted: #6b7785;
-    --accent: #d4af37;
-    --accent-soft: rgba(212, 175, 55, 0.12);
-    --accent-hover: #e8c34a;
-    --danger: #d97757;
-    --success: #6ab04c;
-    --info: #4a9eff;
-    --shadow: 0 8px 24px rgba(0,0,0,0.4);
-    --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
-    --radius: 6px;
-    --radius-lg: 10px;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html, body {
-    height: 100%;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    font-size: 14px;
-    line-height: 1.5;
-    overflow: hidden;
-  }
-
-  /* ===== LAYOUT ===== */
-  .app {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    height: 100vh;
-  }
-
-  /* ===== SIDEBAR ===== */
-  .sidebar {
-    background: var(--bg-elev);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .sidebar-header {
-    padding: 20px 18px 16px;
-    border-bottom: 1px solid var(--border);
-  }
-  .sidebar-header .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 4px;
-  }
-  .logo-mark {
-    width: 44px; height: 30px;
-    background: linear-gradient(135deg, var(--accent), #b8941f);
-    border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700;
-    color: #1a1a1a;
-    font-size: 13px;
-    letter-spacing: 0.5px;
-  }
-  .sidebar-header h1 {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-    letter-spacing: 0.2px;
-  }
-  .sidebar-header .subtitle {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  .search-box {
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border);
-  }
-  .search-input {
-    width: 100%;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 12px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    font-family: inherit;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .search-input:focus { border-color: var(--accent); }
-  .search-input::placeholder { color: var(--text-muted); }
-
-  .nav {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px 0;
-  }
-  .nav-section {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    padding: 14px 18px 6px;
-    font-weight: 600;
-  }
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 18px;
-    color: var(--text-dim);
-    cursor: pointer;
-    border-left: 2px solid transparent;
-    transition: all 0.15s;
-    font-size: 13px;
-  }
-  .nav-item:hover {
-    background: var(--bg-hover);
-    color: var(--text);
-  }
-  .nav-item.active {
-    background: var(--accent-soft);
-    color: var(--accent);
-    border-left-color: var(--accent);
-    font-weight: 500;
-  }
-  .nav-icon {
-    width: 16px; height: 16px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
-    flex-shrink: 0;
-  }
-
-  .sidebar-footer {
-    padding: 10px 18px;
-    border-top: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-
-  /* ===== MAIN ===== */
-  .main {
-    overflow-y: auto;
-    background: var(--bg);
-  }
-  .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: rgba(15, 20, 25, 0.95);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--border-soft);
-    padding: 16px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .topbar h2 {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-  }
-  .topbar .meta {
-    color: var(--text-muted);
-    font-size: 12px;
-  }
-
-  .content { padding: 28px 32px 60px; }
-
-  /* ===== HOME ===== */
-  .home-hero {
-    margin-bottom: 32px;
-    padding: 24px 28px;
-    background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-card) 100%);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    position: relative;
-    overflow: hidden;
-  }
-  .home-hero::before {
-    content: '';
-    position: absolute;
-    top: -50%; right: -10%;
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .home-hero h2 {
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 6px;
-    letter-spacing: -0.3px;
-  }
-  .home-hero p { color: var(--text-dim); font-size: 14px; }
-
-  .home-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 14px;
-  }
-  .home-card {
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-  .home-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow);
-  }
-  .home-card::after {
-    content: '→';
-    position: absolute;
-    top: 16px; right: 16px;
-    color: var(--text-muted);
-    font-size: 16px;
-    transition: all 0.2s;
-  }
-  .home-card:hover::after { color: var(--accent); transform: translateX(4px); }
-  .home-card-icon {
-    width: 36px; height: 36px;
-    background: var(--accent-soft);
-    border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 12px;
-    font-size: 18px;
-    color: var(--accent);
-  }
-  .home-card h3 {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 4px;
-    color: var(--text);
-  }
-  .home-card p {
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.4;
-  }
-
-  /* ===== SECTIONS ===== */
-  .section { margin-bottom: 28px; }
-  .section-title {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing
     --bg-card: #232c36;
     --bg-hover: #2d3743;
     --border: #2f3a47;
@@ -599,21 +329,13 @@
   td.muted { color: var(--text-muted); }
 
   /* ===== CARDS layout ===== */
-  .two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-  }
-  @media (max-width: 1100px) {
-    .two-col { grid-template-columns: 1fr; }
-  }
-
   .card {
     background: var(--bg-elev);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 16px 18px;
     margin-bottom: 14px;
+    width: 100%;
   }
   .card h4 {
     color: var(--accent);
@@ -705,7 +427,7 @@
   .ql-snow .ql-picker { color: var(--text-dim) !important; }
   .ql-editor.ql-blank::before { color: rgba(154, 167, 180, 0.5) !important; font-style: normal; }
   /* Ajuste de lectura para tarjetas Quill */
-  .card .ql-editor { padding: 0; overflow: hidden; white-space: normal; }
+  .card .ql-editor { padding: 0; min-height: auto; overflow: hidden; white-space: normal; }
   
   /* ========================================================
      SISTEMA DE ROLES CSS
@@ -980,16 +702,12 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
 }
 
 function renderCards(cards, pageKey, sectionIndex) {
-  let html = '<div class="two-col"><div>';
-  const mid = Math.ceil((cards || []).length / 2);
-  const col1 = (cards || []).slice(0, mid);
-  const col2 = (cards || []).slice(mid);
+  let html = '<div>'; // Se eliminó el .two-col para que ocupe el 100%
   
   function createCardHtml(c, index) {
-    // Aquí el body lo inyectamos directamente porque es HTML generado por Quill
     return `
       <div class="card" style="position: relative; padding-top: 24px;">
-        <div class="admin-only" style="position: absolute; top: 10px; right: 12px; gap: 4px;">
+        <div class="admin-only" style="position: absolute; top: 10px; right: 12px; gap: 4px; z-index: 10;">
           <button class="btn-action-ui" onclick="editarCard('${pageKey}', ${sectionIndex}, ${index})" title="Editar">✏️</button>
           <button class="btn-action-ui" onclick="eliminarCard('${pageKey}', ${sectionIndex}, ${index})" title="Eliminar">🗑️</button>
         </div>
@@ -998,12 +716,11 @@ function renderCards(cards, pageKey, sectionIndex) {
       </div>`;
   }
 
-  let htmlCol1 = '';
-  for (let i = 0; i < col1.length; i++) htmlCol1 += createCardHtml(col1[i], i);
-  let htmlCol2 = '';
-  for (let i = 0; i < col2.length; i++) htmlCol2 += createCardHtml(col2[i], mid + i);
+  for (let i = 0; i < (cards || []).length; i++) {
+    html += createCardHtml(cards[i], i);
+  }
 
-  html = `<div class="two-col"><div>${htmlCol1}</div><div>${htmlCol2}</div></div>`;
+  html += '</div>';
   html += `<button class="admin-only" onclick="añadirCardNueva('${pageKey}', ${sectionIndex})" style="background: transparent; border: 1px dashed var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 11px; margin-bottom: 14px; font-weight: 500; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px;">+ Añadir Tarjeta</button>`;
   return html;
 }
@@ -1091,7 +808,6 @@ window.renderPage = function(key) {
 const modal = document.getElementById('editModal');
 const modalContentBox = document.getElementById('modalContentBox');
 
-// Nuevo sistema de redimensión de ventana según contenido
 function abrirModal(mode = 'normal') { 
   modal.style.display = 'flex'; 
   
@@ -1108,7 +824,6 @@ function abrirModal(mode = 'normal') {
     document.getElementById('modalBody').style.maxHeight = '75vh';
     document.getElementById('modalBody').style.height = 'auto';
   } else {
-    // Normal Mode
     modalContentBox.style.width = '600px';
     modalContentBox.style.height = 'auto';
     modalContentBox.style.maxWidth = '95%';
@@ -1119,7 +834,6 @@ function abrirModal(mode = 'normal') {
 
 function cerrarModal() { 
   modal.style.display = 'none'; 
-  // Limpiar instancia Quill si estaba abierta para evitar conflictos
   window.currentQuill = null;
 }
 document.getElementById('closeModalBtn').addEventListener('click', cerrarModal);
@@ -1346,7 +1060,6 @@ window.editarCard = function(pageKey, sectionIndex, cardIndex) {
   
   abrirModal('fullscreen');
   
-  // Iniciar Quill con un pequeño retraso para asegurar que el DOM cargó su tamaño
   setTimeout(() => {
     window.currentQuill = new Quill('#cardBodyEditor', {
       theme: 'snow',
@@ -1362,7 +1075,6 @@ window.editarCard = function(pageKey, sectionIndex, cardIndex) {
         ]
       }
     });
-    // Volcar contenido HTML existente en el editor
     window.currentQuill.clipboard.dangerouslyPasteHTML(card.body || '');
   }, 50);
 }
@@ -1464,7 +1176,6 @@ window.añadirFilaMenu = function() {
   container.appendChild(div);
 }
 
-// Función auxiliar para reordenar filas visualmente en el panel
 window.moverFilaMenu = function(btn, dir) {
   const row = btn.closest('.menu-edit-row');
   if (dir === -1 && row.previousElementSibling) {
@@ -1517,7 +1228,6 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'card') {
-      // Guardar desde Quill en vez de Input plano
       LOCAL_DATA[currentEditPage].sections[currentEditSection].cards[currentEditIndex] = {
         title: document.getElementById('cardTitleInput').value,
         body: window.currentQuill.root.innerHTML
@@ -1525,7 +1235,6 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'new_card') {
-      // Guardar desde Quill
       if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].cards) LOCAL_DATA[currentEditPage].sections[currentEditSection].cards = [];
       LOCAL_DATA[currentEditPage].sections[currentEditSection].cards.push({
         title: document.getElementById('cardTitleInput').value,
@@ -1568,7 +1277,6 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       const newCards = [];
       const batchPromises = []; 
 
-      // El forEach respetará el orden actual de las filas en el HTML tras reordenarlas
       rows.forEach(row => {
         const icon = row.querySelector('.menu-icon').value || '📁';
         const id = row.querySelector('.menu-id').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, ''); 
@@ -1618,7 +1326,6 @@ async function guardarEnFirebase(pageKey) {
 /* ============================================================
    MOTOR DE BÚSQUEDA GLOBAL ASÍNCRONO
    ============================================================ */
-// Helper para limpiar etiquetas HTML de la búsqueda
 function stripHtml(html) {
    let tmp = document.createElement("DIV");
    tmp.innerHTML = html;
@@ -1716,7 +1423,7 @@ function renderSearchResults(query) {
         html += `<h4 style="font-size:12px;color:var(--text-dim);margin:10px 0 6px;font-weight:500">${escapeHTML(secName)}</h4>`;
         for (const it of items) {
           if (it.type === 'card') {
-            html += `<div class="card"><h4>${escapeHTML(it.title)}</h4><div class="ql-editor">${highlightInLinkedHtml(it.body, term)}</div></div>`;
+            html += `<div class="card" style="width: 100%;"><h4>${escapeHTML(it.title)}</h4><div class="ql-editor">${highlightInLinkedHtml(it.body, term)}</div></div>`;
           } else if (it.type === 'note') {
             html += `<div class="notes"><p>${highlightInLinkedHtml(linkify(it.body), term)}</p></div>`;
           }
