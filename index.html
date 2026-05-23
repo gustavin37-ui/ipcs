@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestión de IPC's de Magistrados</title>
+<title>Herramientas UNIR</title>
+
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+
 <style>
   :root {
     --bg: #0f1419;
@@ -65,13 +69,14 @@
     margin-bottom: 4px;
   }
   .logo-mark {
-    width: 30px; height: 30px;
+    width: 44px; height: 30px;
     background: linear-gradient(135deg, var(--accent), #b8941f);
     border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
     font-weight: 700;
     color: #1a1a1a;
-    font-size: 14px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
   }
   .sidebar-header h1 {
     font-size: 14px;
@@ -395,7 +400,7 @@
   .modal-content {
     background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg);
     width: 600px; max-width: 95%; padding: 22px; box-shadow: var(--shadow);
-    transition: width 0.3s ease;
+    transition: all 0.3s ease;
   }
   .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-soft); padding-bottom: 10px; }
   .modal-header h3 { color: var(--accent); font-size: 15px; font-weight: 600; }
@@ -420,6 +425,17 @@
     font-family: inherit; font-size: 13px; resize: vertical; outline: none; padding: 4px;
   }
   .bulk-input:focus { background: rgba(255,255,255,0.03); }
+
+  /* ===== ESTILOS QUILL (MODO OSCURO) ===== */
+  .ql-toolbar.ql-snow { border: 1px solid var(--border-soft) !important; background: var(--bg-elev); border-radius: var(--radius) var(--radius) 0 0; }
+  .ql-container.ql-snow { border: 1px solid var(--border-soft) !important; background: var(--bg-card); border-radius: 0 0 var(--radius) var(--radius); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; color: var(--text); }
+  .ql-editor { min-height: 200px; font-family: inherit; line-height: 1.6; padding: 15px; }
+  .ql-snow .ql-stroke { stroke: var(--text-dim) !important; }
+  .ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill { fill: var(--text-dim) !important; }
+  .ql-snow .ql-picker { color: var(--text-dim) !important; }
+  .ql-editor.ql-blank::before { color: rgba(154, 167, 180, 0.5) !important; font-style: normal; }
+  /* Ajuste de lectura para tarjetas Quill */
+  .card .ql-editor { padding: 0; overflow: hidden; white-space: normal; }
   
   /* ========================================================
      SISTEMA DE ROLES CSS
@@ -445,8 +461,8 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="logo">
-        <div class="logo-mark">IPC</div>
-        <h1>Gestión IPC's Magistrados</h1>
+        <div class="logo-mark">UNIR</div>
+        <h1>Herramientas UNIR</h1>
       </div>
       <div class="subtitle">Guía Rápida de Agente · v2.9</div>
     </div>
@@ -538,6 +554,9 @@ let currentEditPage = null;
 let currentEditSection = null;
 let currentEditIndex = null;
 let currentEditType = null; 
+
+// Control Global para el editor rico
+window.currentQuill = null;
 
 /* ============================================================
    LÓGICA DE AUTENTICACIÓN Y ROLES
@@ -697,6 +716,7 @@ function renderCards(cards, pageKey, sectionIndex) {
   const col2 = (cards || []).slice(mid);
   
   function createCardHtml(c, index) {
+    // Aquí el body lo inyectamos directamente porque es HTML generado por Quill
     return `
       <div class="card" style="position: relative; padding-top: 24px;">
         <div class="admin-only" style="position: absolute; top: 10px; right: 12px; gap: 4px;">
@@ -704,7 +724,7 @@ function renderCards(cards, pageKey, sectionIndex) {
           <button class="btn-action-ui" onclick="eliminarCard('${pageKey}', ${sectionIndex}, ${index})" title="Eliminar">🗑️</button>
         </div>
         <h4>${escapeHTML(c.title)}</h4>
-        <div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:var(--text)">${linkify(c.body)}</div>
+        <div class="ql-editor">${c.body}</div>
       </div>`;
   }
 
@@ -732,7 +752,7 @@ window.renderPage = function(key) {
       <div class="home-hero">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div>
-            <h2>Gestión IPC's de Magistrados</h2>
+            <h2>Herramientas UNIR</h2>
             <p>Guía rápida de agente — Responsables del servicio, agentes de atención y soporte, técnicos de formación.</p>
           </div>
           <button class="admin-only" onclick="gestionarMenu()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">⚙️ Administrar Categorías</button>
@@ -777,7 +797,6 @@ window.renderPage = function(key) {
     html += '</div>';
   }
   
-  // BOTÓN DE CREACIÓN DE SECCIONES (Aparecerá siempre que seas admin, ideal para categorías vacías)
   html += `
     <div class="admin-only" style="margin-top: 24px; text-align: center;">
       <button onclick="añadirSeccionNueva('${key}')" style="background: transparent; border: 1px dashed var(--text-muted); color: var(--text-dim); padding: 10px 20px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; width: 100%; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.color='var(--accent)';" onmouseout="this.style.borderColor='var(--text-muted)'; this.style.color='var(--text-dim)';">
@@ -797,16 +816,41 @@ window.renderPage = function(key) {
 }
 
 /* ============================================================
-   LÓGICA ADMINISTRATIVA (MODALES DE EDICIÓN)
+   LÓGICA ADMINISTRATIVA (MODALES Y REDIMENSIÓN)
    ============================================================ */
 const modal = document.getElementById('editModal');
 const modalContentBox = document.getElementById('modalContentBox');
 
-function abrirModal() { modal.style.display = 'flex'; }
+// Nuevo sistema de redimensión de ventana según contenido
+function abrirModal(mode = 'normal') { 
+  modal.style.display = 'flex'; 
+  
+  if (mode === 'fullscreen') {
+    modalContentBox.style.width = '96vw';
+    modalContentBox.style.height = '96vh';
+    modalContentBox.style.maxWidth = '1600px';
+    document.getElementById('modalBody').style.maxHeight = 'calc(96vh - 140px)';
+    document.getElementById('modalBody').style.height = 'calc(96vh - 140px)';
+  } else if (mode === 'bulk') {
+    modalContentBox.style.width = '95vw';
+    modalContentBox.style.height = 'auto';
+    modalContentBox.style.maxWidth = '1400px';
+    document.getElementById('modalBody').style.maxHeight = '75vh';
+    document.getElementById('modalBody').style.height = 'auto';
+  } else {
+    // Normal Mode
+    modalContentBox.style.width = '600px';
+    modalContentBox.style.height = 'auto';
+    modalContentBox.style.maxWidth = '95%';
+    document.getElementById('modalBody').style.maxHeight = '65vh';
+    document.getElementById('modalBody').style.height = 'auto';
+  }
+}
+
 function cerrarModal() { 
   modal.style.display = 'none'; 
-  modalContentBox.style.width = '600px';
-  modalContentBox.style.maxWidth = '95%';
+  // Limpiar instancia Quill si estaba abierta para evitar conflictos
+  window.currentQuill = null;
 }
 document.getElementById('closeModalBtn').addEventListener('click', cerrarModal);
 
@@ -828,7 +872,7 @@ window.añadirSeccionNueva = function(pageKey) {
       </select>
     </div>
   `;
-  abrirModal();
+  abrirModal('normal');
 }
 
 window.eliminarSeccion = async function(pageKey, sectionIndex) {
@@ -849,9 +893,6 @@ window.editarTablaCompleta = function(pageKey, sectionIndex) {
 
   document.getElementById('modalTitle').textContent = `Edición Masiva — ${sec.title}`;
   
-  modalContentBox.style.width = '95vw';
-  modalContentBox.style.maxWidth = '1400px';
-
   let html = `<div style="overflow-x:auto; max-height: 55vh; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom:10px;">
     <table style="width:100%; border-collapse: collapse; min-width: max-content;" id="bulkEditTable">
       <thead style="background: var(--bg-card); position: sticky; top: 0; z-index: 2;">
@@ -883,7 +924,7 @@ window.editarTablaCompleta = function(pageKey, sectionIndex) {
   `;
 
   document.getElementById('modalBody').innerHTML = html;
-  abrirModal();
+  abrirModal('bulk');
 }
 
 window.añadirFilaBulk = function() {
@@ -903,7 +944,6 @@ window.añadirFilaBulk = function() {
   tr.innerHTML = html;
   tbody.appendChild(tr);
 }
-
 
 // ---- 3. CONFIGURACIÓN DE TABLAS (CABECERAS / COLUMNAS) ----
 window.gestionarTabla = function(pageKey, sectionIndex) {
@@ -943,7 +983,7 @@ window.gestionarTabla = function(pageKey, sectionIndex) {
   }
 
   document.getElementById('modalBody').innerHTML = html;
-  abrirModal();
+  abrirModal('normal');
 }
 
 window.añadirColumnaTabla = function() {
@@ -982,7 +1022,7 @@ window.editarFila = function(pageKey, sectionIndex, rowIndex) {
   });
   
   document.getElementById('modalBody').innerHTML = bodyHtml;
-  abrirModal();
+  abrirModal('normal');
 }
 
 window.añadirFilaNueva = function(pageKey, sectionIndex) {
@@ -1005,7 +1045,7 @@ window.añadirFilaNueva = function(pageKey, sectionIndex) {
   });
   
   document.getElementById('modalBody').innerHTML = bodyHtml;
-  abrirModal();
+  abrirModal('normal');
 }
 
 window.eliminarFila = async function(pageKey, sectionIndex, rowIndex) {
@@ -1014,7 +1054,7 @@ window.eliminarFila = async function(pageKey, sectionIndex, rowIndex) {
   await guardarEnFirebase(pageKey);
 }
 
-// ---- OPERACIONES SOBRE TARJETAS (CARDS) ----
+// ---- OPERACIONES SOBRE TARJETAS (CARDS CON QUILL) ----
 window.editarCard = function(pageKey, sectionIndex, cardIndex) {
   currentEditPage = pageKey;
   currentEditSection = sectionIndex;
@@ -1025,15 +1065,36 @@ window.editarCard = function(pageKey, sectionIndex, cardIndex) {
   document.getElementById('modalTitle').textContent = 'Editar Tarjeta / Plantilla';
   
   document.getElementById('modalBody').innerHTML = `
-    <div class="modal-field">
-      <label>Título de la Incidencia</label>
+    <div class="modal-field" style="margin-bottom: 10px;">
+      <label>Título de la Tarjeta</label>
       <input type="text" id="cardTitleInput" value="${escapeHTML(card.title)}">
     </div>
-    <div class="modal-field">
-      <label>Datos Mínimos / Cuerpo del Mensaje</label>
-      <textarea id="cardBodyInput" rows="10">${escapeHTML(card.body)}</textarea>
+    <div class="modal-field" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <label>Cuerpo del Mensaje (Editor Avanzado)</label>
+      <div id="cardBodyEditor"></div>
     </div>`;
-  abrirModal();
+  
+  abrirModal('fullscreen');
+  
+  // Iniciar Quill con un pequeño retraso para asegurar que el DOM cargó su tamaño
+  setTimeout(() => {
+    window.currentQuill = new Quill('#cardBodyEditor', {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'code-block'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'align': [] }],
+          ['link'],
+          ['clean']
+        ]
+      }
+    });
+    // Volcar contenido HTML existente en el editor
+    window.currentQuill.clipboard.dangerouslyPasteHTML(card.body || '');
+  }, 50);
 }
 
 window.añadirCardNueva = function(pageKey, sectionIndex) {
@@ -1042,16 +1103,36 @@ window.añadirCardNueva = function(pageKey, sectionIndex) {
   currentEditType = 'new_card';
 
   document.getElementById('modalTitle').textContent = 'Añadir Nueva Tarjeta / Plantilla';
+  
   document.getElementById('modalBody').innerHTML = `
-    <div class="modal-field">
-      <label>Título de la Incidencia</label>
+    <div class="modal-field" style="margin-bottom: 10px;">
+      <label>Título de la Tarjeta</label>
       <input type="text" id="cardTitleInput" placeholder="Ej: OUTLOOK WEB">
     </div>
-    <div class="modal-field">
-      <label>Datos Mínimos / Cuerpo del Mensaje</label>
-      <textarea id="cardBodyInput" rows="10" placeholder="ASUNTO – DATOS MÍNIMOS 1N:\n1. Descripción..."></textarea>
+    <div class="modal-field" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <label>Cuerpo del Mensaje (Editor Avanzado)</label>
+      <div id="cardBodyEditor"></div>
     </div>`;
-  abrirModal();
+  
+  abrirModal('fullscreen');
+  
+  setTimeout(() => {
+    window.currentQuill = new Quill('#cardBodyEditor', {
+      theme: 'snow',
+      placeholder: 'Escribe el contenido o plantilla de la tarjeta aquí...',
+      modules: {
+        toolbar: [
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'code-block'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'align': [] }],
+          ['link'],
+          ['clean']
+        ]
+      }
+    });
+  }, 50);
 }
 
 window.eliminarCard = async function(pageKey, sectionIndex, cardIndex) {
@@ -1065,7 +1146,7 @@ window.gestionarMenu = function() {
   currentEditType = 'menu_manager';
   document.getElementById('modalTitle').textContent = 'Administrar Menú Lateral';
 
-  let html = '<div style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height: 1.5;">Añade, edita o elimina las categorías principales. Guardar cambios actualizará el menú para todos los usuarios.</div>';
+  let html = '<div style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height: 1.5;">Añade, edita, elimina o reordena las categorías principales usando las flechas.</div>';
   const cards = LOCAL_DATA['home'].cards || [];
 
   html += '<div id="menuEditorList" style="display:flex; flex-direction:column; gap:10px;">';
@@ -1073,11 +1154,15 @@ window.gestionarMenu = function() {
   cards.forEach((c) => {
     html += `
       <div class="menu-edit-row" style="display:flex; gap:8px; align-items:center; background:var(--bg-card); padding:8px; border-radius:var(--radius); border:1px solid var(--border);">
+        <div style="display:flex; flex-direction:column; gap:2px; margin-right:4px;">
+          <button onclick="moverFilaMenu(this, -1)" style="background:transparent; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" title="Subir">⬆️</button>
+          <button onclick="moverFilaMenu(this, 1)" style="background:transparent; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" title="Bajar">⬇️</button>
+        </div>
         <input type="text" class="menu-icon" value="${escapeHTML(c.icon)}" style="width:45px; text-align:center; padding: 6px;" title="Icono (Emoji)">
         <input type="text" class="menu-id" value="${escapeHTML(c.id)}" style="width:100px; padding: 6px; background: rgba(0,0,0,0.2); color: var(--text-muted);" title="ID Interno (No editable)" disabled>
         <input type="text" class="menu-title" value="${escapeHTML(c.title)}" style="flex:1; padding: 6px;" title="Título">
         <input type="text" class="menu-desc" value="${escapeHTML(c.desc)}" style="flex:1.5; padding: 6px;" title="Descripción">
-        <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px;" title="Eliminar Categoría">🗑️</button>
+        <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px; margin-left:4px;" title="Eliminar Categoría">🗑️</button>
       </div>
     `;
   });
@@ -1086,7 +1171,7 @@ window.gestionarMenu = function() {
   html += `<button onclick="añadirFilaMenu()" style="margin-top:14px; background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:6px 12px; border-radius:var(--radius); cursor:pointer; font-size:11px; text-transform: uppercase; letter-spacing: 0.5px;">+ Nueva Categoría</button>`;
 
   document.getElementById('modalBody').innerHTML = html;
-  abrirModal();
+  abrirModal('normal');
 }
 
 window.añadirFilaMenu = function() {
@@ -1096,13 +1181,27 @@ window.añadirFilaMenu = function() {
   div.style.cssText = 'display:flex; gap:8px; align-items:center; background:var(--bg-card); padding:8px; border-radius:var(--radius); border:1px solid var(--border);';
   
   div.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:2px; margin-right:4px;">
+      <button onclick="moverFilaMenu(this, -1)" style="background:transparent; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" title="Subir">⬆️</button>
+      <button onclick="moverFilaMenu(this, 1)" style="background:transparent; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" title="Bajar">⬇️</button>
+    </div>
     <input type="text" class="menu-icon" placeholder="📁" style="width:45px; text-align:center; padding: 6px;" title="Icono">
     <input type="text" class="menu-id" placeholder="id_nuevo" style="width:100px; padding: 6px; border-color: var(--info);" title="Escribe un ID sin espacios">
     <input type="text" class="menu-title" placeholder="Título visible" style="flex:1; padding: 6px;">
     <input type="text" class="menu-desc" placeholder="Descripción breve..." style="flex:1.5; padding: 6px;">
-    <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px;">🗑️</button>
+    <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px; margin-left:4px;">🗑️</button>
   `;
   container.appendChild(div);
+}
+
+// Función auxiliar para reordenar filas visualmente en el panel
+window.moverFilaMenu = function(btn, dir) {
+  const row = btn.closest('.menu-edit-row');
+  if (dir === -1 && row.previousElementSibling) {
+    row.parentNode.insertBefore(row, row.previousElementSibling);
+  } else if (dir === 1 && row.nextElementSibling) {
+    row.parentNode.insertBefore(row.nextElementSibling, row);
+  }
 }
 
 // ---- GUARDADO MAESTRO EN CLOUD FIRESTORE ----
@@ -1114,15 +1213,10 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
   try {
     if (currentEditType === 'new_section') {
       if (!LOCAL_DATA[currentEditPage].sections) LOCAL_DATA[currentEditPage].sections = [];
-      
       const title = document.getElementById('newSectionTitle').value || 'Nueva Sección';
       const type = document.getElementById('newSectionType').value;
-      
-      if (type === 'table') {
-        LOCAL_DATA[currentEditPage].sections.push({ title: title, type: 'table', headers: ['Columna 1', 'Columna 2'], rows: [] });
-      } else {
-        LOCAL_DATA[currentEditPage].sections.push({ title: title, type: 'cards', cards: [] });
-      }
+      if (type === 'table') LOCAL_DATA[currentEditPage].sections.push({ title: title, type: 'table', headers: ['Columna 1', 'Columna 2'], rows: [] });
+      else LOCAL_DATA[currentEditPage].sections.push({ title: title, type: 'cards', cards: [] });
       await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'bulk_table') {
@@ -1131,9 +1225,7 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       trs.forEach(tr => {
         const rowObj = {};
         const inputs = tr.querySelectorAll('.bulk-input');
-        inputs.forEach(inp => {
-          rowObj[inp.dataset.col] = inp.value;
-        });
+        inputs.forEach(inp => { rowObj[inp.dataset.col] = inp.value; });
         newRows.push(rowObj);
       });
       LOCAL_DATA[currentEditPage].sections[currentEditSection].rows = newRows;
@@ -1155,17 +1247,19 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'card') {
+      // Guardar desde Quill en vez de Input plano
       LOCAL_DATA[currentEditPage].sections[currentEditSection].cards[currentEditIndex] = {
         title: document.getElementById('cardTitleInput').value,
-        body: document.getElementById('cardBodyInput').value
+        body: window.currentQuill.root.innerHTML
       };
       await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'new_card') {
+      // Guardar desde Quill
       if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].cards) LOCAL_DATA[currentEditPage].sections[currentEditSection].cards = [];
       LOCAL_DATA[currentEditPage].sections[currentEditSection].cards.push({
         title: document.getElementById('cardTitleInput').value,
-        body: document.getElementById('cardBodyInput').value
+        body: window.currentQuill.root.innerHTML
       });
       await guardarEnFirebase(currentEditPage);
 
@@ -1204,6 +1298,7 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       const newCards = [];
       const batchPromises = []; 
 
+      // El forEach respetará el orden actual de las filas en el HTML tras reordenarlas
       rows.forEach(row => {
         const icon = row.querySelector('.menu-icon').value || '📁';
         const id = row.querySelector('.menu-id').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, ''); 
@@ -1253,6 +1348,13 @@ async function guardarEnFirebase(pageKey) {
 /* ============================================================
    MOTOR DE BÚSQUEDA GLOBAL ASÍNCRONO
    ============================================================ */
+// Helper para limpiar etiquetas HTML de la búsqueda
+function stripHtml(html) {
+   let tmp = document.createElement("DIV");
+   tmp.innerHTML = html;
+   return tmp.textContent || tmp.innerText || "";
+}
+
 function buildSearchIndex() {
   SEARCH_INDEX = [];
   for (const [key, page] of Object.entries(LOCAL_DATA)) {
@@ -1270,7 +1372,8 @@ function buildSearchIndex() {
         for (const c of sec.cards) {
           SEARCH_INDEX.push({
             page: key, pageTitle: page.title, section: sec.title, type: 'card',
-            title: c.title, body: c.body, text: (c.title + ' ' + c.body).toLowerCase()
+            title: c.title, body: c.body, 
+            text: (c.title + ' ' + stripHtml(c.body)).toLowerCase()
           });
         }
       }
@@ -1343,7 +1446,7 @@ function renderSearchResults(query) {
         html += `<h4 style="font-size:12px;color:var(--text-dim);margin:10px 0 6px;font-weight:500">${escapeHTML(secName)}</h4>`;
         for (const it of items) {
           if (it.type === 'card') {
-            html += `<div class="card"><h4>${escapeHTML(it.title)}</h4><div style="white-space:pre-wrap;font-size:13px;line-height:1.6">${highlightInLinkedHtml(linkify(it.body), term)}</div></div>`;
+            html += `<div class="card"><h4>${escapeHTML(it.title)}</h4><div class="ql-editor">${highlightInLinkedHtml(it.body, term)}</div></div>`;
           } else if (it.type === 'note') {
             html += `<div class="notes"><p>${highlightInLinkedHtml(linkify(it.body), term)}</p></div>`;
           }
