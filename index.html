@@ -322,7 +322,7 @@
     border-bottom: 1px solid var(--border-soft);
     color: var(--text);
     vertical-align: top;
-    white-space: pre-wrap;
+    white-space: pre-wrap; /* Mantiene saltos de línea para texto plano */
   }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: rgba(255,255,255,0.02); }
@@ -411,23 +411,32 @@
   .btn-action-ui { background: transparent; border: none; cursor: pointer; font-size: 14px; opacity: 0.4; transition: opacity 0.15s; padding: 2px; }
   .btn-action-ui:hover { opacity: 1; }
   
-  /* ESTILOS PARA EDICIÓN MASIVA (BULK) */
+  /* ESTILOS PARA EDICIÓN MASIVA (BULK) - Ahora usan ContentEditable */
   .bulk-input {
     width: 100%; min-width: 150px; background: transparent; border: none; color: var(--text); 
-    font-family: inherit; font-size: 13px; resize: vertical; outline: none; padding: 4px;
+    font-family: inherit; font-size: 13px; outline: none; padding: 6px;
   }
   .bulk-input:focus { background: rgba(255,255,255,0.03); }
+  /* Para que los <p> del modo Excel no añadan márgenes enormes */
+  .bulk-input p { margin: 0; padding: 0; }
 
   /* ===== ESTILOS QUILL (MODO OSCURO) ===== */
   .ql-toolbar.ql-snow { border: 1px solid var(--border-soft) !important; background: var(--bg-elev); border-radius: var(--radius) var(--radius) 0 0; }
   .ql-container.ql-snow { border: 1px solid var(--border-soft) !important; background: var(--bg-card); border-radius: 0 0 var(--radius) var(--radius); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; color: var(--text); }
-  .ql-editor { min-height: 200px; font-family: inherit; line-height: 1.6; padding: 15px; }
+  .ql-editor { font-family: inherit; line-height: 1.6; padding: 15px; }
+  
+  /* Alturas específicas para tarjetas vs celdas de tabla */
+  .quill-card-editor .ql-editor { min-height: 200px; }
+  .quill-table-editor .ql-editor { min-height: 80px; max-height: 250px; overflow-y: auto; }
+
   .ql-snow .ql-stroke { stroke: var(--text-dim) !important; }
   .ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill { fill: var(--text-dim) !important; }
   .ql-snow .ql-picker { color: var(--text-dim) !important; }
   .ql-editor.ql-blank::before { color: rgba(154, 167, 180, 0.5) !important; font-style: normal; }
-  /* Ajuste de lectura para tarjetas Quill */
-  .card .ql-editor { padding: 0; min-height: auto; overflow: hidden; white-space: normal; }
+  
+  /* Ajuste de lectura para tarjetas y tablas con HTML de Quill */
+  .card .ql-editor, td .ql-editor { padding: 0; min-height: auto; overflow: visible; white-space: normal; }
+  td .ql-editor p { margin: 0; padding: 0; }
   
   /* ========================================================
      SISTEMA DE ROLES CSS
@@ -547,8 +556,9 @@ let currentEditSection = null;
 let currentEditIndex = null;
 let currentEditType = null; 
 
-// Control Global para el editor rico
-window.currentQuill = null;
+// Controles Globales para Editores Quill
+window.currentQuill = null; // Para tarjetas
+window.currentTableQuills = {}; // Para celdas de tabla fila a fila
 
 /* ============================================================
    LÓGICA DE AUTENTICACIÓN Y ROLES
@@ -663,6 +673,16 @@ window.renderSidebar = function() {
   });
 }
 
+// Función inteligente para detectar si es texto HTML enriquecido (Quill) o texto plano antiguo
+function smartFormat(text) {
+  if (!text) return '';
+  const str = String(text);
+  if (/<[a-z][\s\S]*>/i.test(str)) {
+    return str; // Ya es HTML de Quill, no lo escapamos
+  }
+  return linkify(str); // Texto plano antiguo, lo linkeamos y escapamos
+}
+
 function renderTable(headers, rows, pageKey, sectionIndex) {
   let html = '<div class="table-wrap"><table>';
   if (headers && headers.length) {
@@ -676,16 +696,18 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
     
     html += '<tr>';
     for (let j = 0; j < (headers || []).length; j++) {
-      let cell = rowObj[j] !== undefined ? rowObj[j] : '';
-      const empty = cell === '' || cell === null;
-      let finalCell = linkify(cell);
+      let cellStr = rowObj[j] !== undefined ? String(rowObj[j]) : '';
+      const empty = cellStr === '' || cellStr.trim() === '';
       
-      if (cell === 'CHROME') finalCell = '<span class="pill chrome">CHROME</span>';
-      else if (cell === 'EDGE') finalCell = '<span class="pill edge">EDGE</span>';
-      else if (cell === 'EDGE/CHROME') finalCell = '<span class="pill chrome">EDGE/CHROME</span>';
-      else if (cell === 'EDGE - MODO IE') finalCell = '<span class="pill edge">EDGE - MODO IE</span>';
+      let finalCell = smartFormat(cellStr);
       
-      html += `<td${empty ? ' class="muted"' : ''}>${finalCell}</td>`;
+      if (cellStr === 'CHROME') finalCell = '<span class="pill chrome">CHROME</span>';
+      else if (cellStr === 'EDGE') finalCell = '<span class="pill edge">EDGE</span>';
+      else if (cellStr === 'EDGE/CHROME') finalCell = '<span class="pill chrome">EDGE/CHROME</span>';
+      else if (cellStr === 'EDGE - MODO IE') finalCell = '<span class="pill edge">EDGE - MODO IE</span>';
+      
+      // Envolvemos en ql-editor para que si tiene listas o negritas de Quill, se vean bien sin romper el padding
+      html += `<td${empty ? ' class="muted"' : ''}><div class="${/<[a-z][\s\S]*>/i.test(cellStr) ? 'ql-editor' : ''}">${finalCell}</div></td>`;
     }
 
     html += `
@@ -702,7 +724,7 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
 }
 
 function renderCards(cards, pageKey, sectionIndex) {
-  let html = '<div>'; // Se eliminó el .two-col para que ocupe el 100%
+  let html = '<div>'; // Ocupa el 100% de la pantalla
   
   function createCardHtml(c, index) {
     return `
@@ -835,6 +857,7 @@ function abrirModal(mode = 'normal') {
 function cerrarModal() { 
   modal.style.display = 'none'; 
   window.currentQuill = null;
+  window.currentTableQuills = {};
 }
 document.getElementById('closeModalBtn').addEventListener('click', cerrarModal);
 
@@ -865,7 +888,7 @@ window.eliminarSeccion = async function(pageKey, sectionIndex) {
   await guardarEnFirebase(pageKey);
 }
 
-// ---- 2. EDICIÓN MASIVA (MODO EXCEL) ----
+// ---- 2. EDICIÓN MASIVA (MODO EXCEL con ContentEditable para preservar HTML) ----
 window.editarTablaCompleta = function(pageKey, sectionIndex) {
   currentEditPage = pageKey;
   currentEditSection = sectionIndex;
@@ -895,8 +918,9 @@ window.editarTablaCompleta = function(pageKey, sectionIndex) {
     `;
     headers.forEach((_, cIdx) => {
       const val = rowObj[cIdx] !== undefined ? rowObj[cIdx] : '';
+      // Utilizamos contenteditable div en lugar de textarea para que soporte HTML sin ver las etiquetas <p>
       html += `<td style="padding: 0; border-bottom: 1px solid var(--border-soft); border-right: 1px solid var(--border-soft);">
-        <textarea class="bulk-input" data-col="${cIdx}" rows="1">${escapeHTML(val)}</textarea>
+        <div class="bulk-input" contenteditable="true" data-col="${cIdx}">${val}</div>
       </td>`;
     });
     html += `<td style="padding: 4px; text-align:center; border-bottom: 1px solid var(--border-soft);"><button onclick="this.closest('tr').remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer;" title="Eliminar Fila">🗑️</button></td></tr>`;
@@ -904,7 +928,7 @@ window.editarTablaCompleta = function(pageKey, sectionIndex) {
 
   html += `</tbody></table></div>
   <button onclick="añadirFilaBulk()" style="background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:6px 12px; border-radius:var(--radius); cursor:pointer; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">+ Añadir Fila</button>
-  <div style="margin-top:10px; font-size: 11px; color: var(--info);">💡 Tip: Puedes copiar celdas desde Excel y pegarlas aquí directamente usando esta vista de cuadrícula.</div>
+  <div style="margin-top:10px; font-size: 11px; color: var(--info);">💡 Tip: La cuadrícula conserva los estilos (negritas, enlaces) que creaste individualmente.</div>
   `;
 
   document.getElementById('modalBody').innerHTML = html;
@@ -921,7 +945,7 @@ window.añadirFilaBulk = function() {
   let html = `<td style="padding: 4px; text-align:center; color: var(--success); font-size: 12px; border-bottom: 1px solid var(--border-soft);">✨</td>`;
   headers.forEach((_, cIdx) => {
     html += `<td style="padding: 0; border-bottom: 1px solid var(--border-soft); border-right: 1px solid var(--border-soft);">
-        <textarea class="bulk-input" data-col="${cIdx}" rows="1"></textarea>
+        <div class="bulk-input" contenteditable="true" data-col="${cIdx}"></div>
       </td>`;
   });
   html += `<td style="padding: 4px; text-align:center; border-bottom: 1px solid var(--border-soft);"><button onclick="this.closest('tr').remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer;" title="Eliminar Fila">🗑️</button></td>`;
@@ -982,7 +1006,7 @@ window.añadirColumnaTabla = function() {
   document.getElementById('columnList').appendChild(div);
 }
 
-// ---- OPERACIONES SOBRE FILAS INDIVIDUALES ----
+// ---- OPERACIONES SOBRE FILAS INDIVIDUALES (AQUÍ APLICAMOS QUILL) ----
 window.editarFila = function(pageKey, sectionIndex, rowIndex) {
   currentEditPage = pageKey;
   currentEditSection = sectionIndex;
@@ -993,20 +1017,39 @@ window.editarFila = function(pageKey, sectionIndex, rowIndex) {
   const headers = section.headers || [];
   const rowObj = section.rows[rowIndex] || {};
   
-  document.getElementById('modalTitle').textContent = `Editar Fila`;
+  document.getElementById('modalTitle').textContent = `Editar Fila con Herramientas Avanzadas`;
   
   let bodyHtml = '';
   headers.forEach((header, idx) => {
-    const value = rowObj[idx] !== undefined ? rowObj[idx] : '';
     bodyHtml += `
-      <div class="modal-field">
+      <div class="modal-field" style="margin-bottom: 16px;">
         <label>${escapeHTML(header)}</label>
-        <textarea class="modal-input" data-index="${idx}" rows="2">${escapeHTML(value)}</textarea>
+        <div id="quill-col-${idx}" class="quill-table-editor"></div>
       </div>`;
   });
   
   document.getElementById('modalBody').innerHTML = bodyHtml;
-  abrirModal('normal');
+  abrirModal('fullscreen'); // Usamos pantalla completa para que quepan varias toolbars
+  
+  setTimeout(() => {
+    window.currentTableQuills = {};
+    headers.forEach((header, idx) => {
+      const q = new Quill(`#quill-col-${idx}`, {
+        theme: 'snow',
+        modules: {
+          toolbar: [
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'color': [] }, { 'background': [] }],
+            ['link', 'clean']
+          ]
+        }
+      });
+      // Detectamos si es viejo plain text y si es necesario lo transformamos o pegamos
+      q.clipboard.dangerouslyPasteHTML(rowObj[idx] !== undefined ? String(rowObj[idx]) : '');
+      window.currentTableQuills[idx] = q;
+    });
+  }, 50);
 }
 
 window.añadirFilaNueva = function(pageKey, sectionIndex) {
@@ -1017,19 +1060,37 @@ window.añadirFilaNueva = function(pageKey, sectionIndex) {
   const section = LOCAL_DATA[pageKey].sections[sectionIndex];
   const headers = section.headers || [];
   
-  document.getElementById('modalTitle').textContent = `Añadir Fila`;
+  document.getElementById('modalTitle').textContent = `Añadir Fila con Herramientas Avanzadas`;
   
   let bodyHtml = '';
   headers.forEach((header, idx) => {
     bodyHtml += `
-      <div class="modal-field">
+      <div class="modal-field" style="margin-bottom: 16px;">
         <label>${escapeHTML(header)}</label>
-        <textarea class="modal-input" data-index="${idx}" rows="2"></textarea>
+        <div id="quill-col-${idx}" class="quill-table-editor"></div>
       </div>`;
   });
   
   document.getElementById('modalBody').innerHTML = bodyHtml;
-  abrirModal('normal');
+  abrirModal('fullscreen');
+  
+  setTimeout(() => {
+    window.currentTableQuills = {};
+    headers.forEach((header, idx) => {
+      const q = new Quill(`#quill-col-${idx}`, {
+        theme: 'snow',
+        modules: {
+          toolbar: [
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'color': [] }, { 'background': [] }],
+            ['link', 'clean']
+          ]
+        }
+      });
+      window.currentTableQuills[idx] = q;
+    });
+  }, 50);
 }
 
 window.eliminarFila = async function(pageKey, sectionIndex, rowIndex) {
@@ -1055,7 +1116,7 @@ window.editarCard = function(pageKey, sectionIndex, cardIndex) {
     </div>
     <div class="modal-field" style="flex:1; display:flex; flex-direction:column; min-height:0;">
       <label>Cuerpo del Mensaje (Editor Avanzado)</label>
-      <div id="cardBodyEditor"></div>
+      <div id="cardBodyEditor" class="quill-card-editor"></div>
     </div>`;
   
   abrirModal('fullscreen');
@@ -1093,7 +1154,7 @@ window.añadirCardNueva = function(pageKey, sectionIndex) {
     </div>
     <div class="modal-field" style="flex:1; display:flex; flex-direction:column; min-height:0;">
       <label>Cuerpo del Mensaje (Editor Avanzado)</label>
-      <div id="cardBodyEditor"></div>
+      <div id="cardBodyEditor" class="quill-card-editor"></div>
     </div>`;
   
   abrirModal('fullscreen');
@@ -1206,7 +1267,8 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       trs.forEach(tr => {
         const rowObj = {};
         const inputs = tr.querySelectorAll('.bulk-input');
-        inputs.forEach(inp => { rowObj[inp.dataset.col] = inp.value; });
+        // Usamos innerHTML para guardar los tags HTML y respetar lo que hicimos en Quill
+        inputs.forEach(inp => { rowObj[inp.dataset.col] = inp.innerHTML; });
         newRows.push(rowObj);
       });
       LOCAL_DATA[currentEditPage].sections[currentEditSection].rows = newRows;
@@ -1214,15 +1276,19 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
 
     } else if (currentEditType === 'row') {
       const rowObj = {};
-      const inputs = document.querySelectorAll('.modal-input');
-      inputs.forEach(input => { rowObj[input.dataset.index] = input.value; });
+      const headers = LOCAL_DATA[currentEditPage].sections[currentEditSection].headers || [];
+      headers.forEach((_, idx) => { 
+        rowObj[idx] = window.currentTableQuills[idx].root.innerHTML; 
+      });
       LOCAL_DATA[currentEditPage].sections[currentEditSection].rows[currentEditIndex] = rowObj;
       await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'new_row') {
       const rowObj = {};
-      const inputs = document.querySelectorAll('.modal-input');
-      inputs.forEach(input => { rowObj[input.dataset.index] = input.value; });
+      const headers = LOCAL_DATA[currentEditPage].sections[currentEditSection].headers || [];
+      headers.forEach((_, idx) => { 
+        rowObj[idx] = window.currentTableQuills[idx].root.innerHTML; 
+      });
       if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].rows) LOCAL_DATA[currentEditPage].sections[currentEditSection].rows = [];
       LOCAL_DATA[currentEditPage].sections[currentEditSection].rows.push(rowObj);
       await guardarEnFirebase(currentEditPage);
