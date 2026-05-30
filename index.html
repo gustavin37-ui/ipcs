@@ -8,7 +8,6 @@
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 
-
 <style>
   :root {
     --bg: #0f1419;
@@ -556,22 +555,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getFirestore, doc, collection, getDocs, setDoc, deleteDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// REGISTRO GLOBAL DEL COMPRESOR DE IMÁGENES
-// 1. Engaño a Quill para que no dé error por la configuración de compresión antigua en las tablas
-Quill.register('modules/imageCompress', function(quill, options) {});
-
-// 2. NUEVO MOTOR NATIVO DE COMPRESIÓN (Sin duplicados)
+/* ============================================================
+   NUEVO MOTOR NATIVO DE COMPRESIÓN DE IMÁGENES
+   ============================================================ */
 function procesarImagenQuill(e, files, editorNode) {
   let hasImage = false;
-  // Encontrar a qué editor de la pantalla pertenece
   const quillInstance = Quill.find(editorNode.parentElement);
   if (!quillInstance) return;
 
   for (let file of files) {
     if (file.type.startsWith('image/')) {
       if (!hasImage) {
-        e.preventDefault();  // Bloquea el pegado original de Quill
-        e.stopPropagation(); // Detiene el evento
+        e.preventDefault(); 
+        e.stopPropagation();
         hasImage = true;
       }
       
@@ -596,10 +592,8 @@ function procesarImagenQuill(e, files, editorNode) {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Comprimir a JPEG (calidad 70%) para que pese ~30KB
           const base64 = canvas.toDataURL('image/jpeg', 0.7);
           
-          // Inyectar la versión comprimida
           const range = quillInstance.getSelection(true);
           quillInstance.insertEmbed(range.index, 'image', base64);
           quillInstance.setSelection(range.index + 1);
@@ -611,7 +605,6 @@ function procesarImagenQuill(e, files, editorNode) {
   }
 }
 
-// Escuchadores globales que atrapan el "Pegar" y "Arrastrar" antes que nadie
 document.addEventListener('paste', function(e) {
   const editorNode = e.target.closest('.ql-editor');
   if (editorNode && e.clipboardData && e.clipboardData.files) {
@@ -657,7 +650,6 @@ let currentEditSection = null;
 let currentEditIndex = null;
 let currentEditType = null; 
 
-// Controles Globales para Editores Quill
 window.currentQuill = null; 
 window.currentTableQuills = {}; 
 
@@ -754,7 +746,6 @@ window.exportarTodoAPDF = function() {
     </div>
   `;
 
-  // Iterar en el orden configurado en el Inicio
   const order = (LOCAL_DATA['home']?.cards || []).map(c => c.id);
   
   order.forEach((key, index) => {
@@ -897,7 +888,7 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
                  <div class="resizer admin-only" data-page="${pageKey}" data-sec="${sectionIndex}"></div>
                </th>`;
     });
-    html += '<th class="admin-only" style="text-align: right; width: 75px;">Gestión</th></tr></thead>';
+    html += '<th class="admin-only" style="text-align: right; width: 110px;">Gestión</th></tr></thead>';
   }
   html += '<tbody>';
   
@@ -921,8 +912,11 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
 
     html += `
       <td class="admin-only" style="text-align: right; vertical-align: middle; white-space: nowrap;">
-        <button class="btn-action-ui" onclick="editarFila('${pageKey}', ${sectionIndex}, ${i})" title="Editar Fila Individual">✏️</button>
-        <button class="btn-action-ui" onclick="eliminarFila('${pageKey}', ${sectionIndex}, ${i})" title="Eliminar Fila" style="margin-left: 6px;">🗑️</button>
+        <button class="btn-action-ui" onclick="moverFila('${pageKey}', ${sectionIndex}, ${i}, -1)" title="Subir Fila">⬆️</button>
+        <button class="btn-action-ui" onclick="moverFila('${pageKey}', ${sectionIndex}, ${i}, 1)" title="Bajar Fila">⬇️</button>
+        
+        <button class="btn-action-ui" onclick="editarFila('${pageKey}', ${sectionIndex}, ${i})" title="Editar Fila Individual" style="margin-left: 6px;">✏️</button>
+        <button class="btn-action-ui" onclick="eliminarFila('${pageKey}', ${sectionIndex}, ${i})" title="Eliminar Fila">🗑️</button>
       </td>
     </tr>`;
   }
@@ -938,8 +932,11 @@ function renderCards(cards, pageKey, sectionIndex) {
   function createCardHtml(c, index) {
     return `
       <div class="card" style="position: relative; padding-top: 24px;">
-        <div class="admin-only" style="position: absolute; top: 10px; right: 12px; gap: 4px; z-index: 10;">
-          <button class="btn-action-ui" onclick="editarCard('${pageKey}', ${sectionIndex}, ${index})" title="Editar">✏️</button>
+        <div class="admin-only" style="position: absolute; top: 10px; right: 12px; gap: 4px; z-index: 10; display: flex; align-items: center;">
+          <button class="btn-action-ui" onclick="moverCard('${pageKey}', ${sectionIndex}, ${index}, -1)" title="Subir Tarjeta">⬆️</button>
+          <button class="btn-action-ui" onclick="moverCard('${pageKey}', ${sectionIndex}, ${index}, 1)" title="Bajar Tarjeta">⬇️</button>
+          
+          <button class="btn-action-ui" onclick="editarCard('${pageKey}', ${sectionIndex}, ${index})" title="Editar" style="margin-left: 6px;">✏️</button>
           <button class="btn-action-ui" onclick="eliminarCard('${pageKey}', ${sectionIndex}, ${index})" title="Eliminar">🗑️</button>
         </div>
         <h4>${escapeHTML(c.title)}</h4>
@@ -1001,7 +998,10 @@ window.renderPage = function(key) {
       <div class="section-title">
         <span class="section-title-left">${escapeHTML(sec.title)}</span>
         
-        <div class="admin-only" style="gap: 12px; align-items: center;">
+        <div class="admin-only" style="gap: 12px; align-items: center; display: flex;">
+          <button onclick="moverSeccion('${key}', ${s}, -1)" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; opacity:0.6; transition:opacity 0.2s; padding:0;" title="Mover Sección Arriba" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">⬆️</button>
+          <button onclick="moverSeccion('${key}', ${s}, 1)" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; opacity:0.6; transition:opacity 0.2s; padding:0; margin-right: 8px;" title="Mover Sección Abajo" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">⬇️</button>
+
           <button onclick="editarTablaCompleta('${key}', ${s})" style="background:transparent; border:none; color:var(--info); cursor:pointer; font-size:13px; opacity:0.8; transition:opacity 0.2s;" title="Edición masiva de todas las celdas (Modo Excel)" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">📝 Editar Datos</button>
           
           <button onclick="gestionarTabla('${key}', ${s})" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:13px; opacity:0.6; transition:opacity 0.2s;" title="Modificar estructura de Columnas/Sección" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">⚙️ Configurar</button>
@@ -1216,7 +1216,7 @@ window.añadirColumnaTabla = function() {
   document.getElementById('columnList').appendChild(div);
 }
 
-// ---- OPERACIONES SOBRE FILAS INDIVIDUALES (AQUÍ APLICAMOS QUILL + COMPRESIÓN) ----
+// ---- OPERACIONES SOBRE FILAS INDIVIDUALES ----
 window.editarFila = function(pageKey, sectionIndex, rowIndex) {
   currentEditPage = pageKey;
   currentEditSection = sectionIndex;
@@ -1247,13 +1247,6 @@ window.editarFila = function(pageKey, sectionIndex, rowIndex) {
       const q = new Quill(`#quill-col-${idx}`, {
         theme: 'snow',
         modules: {
-          imageCompress: {
-            quality: 0.7, 
-            maxWidth: 800, 
-            maxHeight: 800,
-            imageType: 'image/jpeg',
-            debug: false
-          },
           toolbar: [
             ['bold', 'italic', 'underline', 'strike'],
             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
@@ -1296,13 +1289,6 @@ window.añadirFilaNueva = function(pageKey, sectionIndex) {
       const q = new Quill(`#quill-col-${idx}`, {
         theme: 'snow',
         modules: {
-          imageCompress: {
-            quality: 0.7, 
-            maxWidth: 800, 
-            maxHeight: 800,
-            imageType: 'image/jpeg',
-            debug: false
-          },
           toolbar: [
             ['bold', 'italic', 'underline', 'strike'],
             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
@@ -1322,7 +1308,7 @@ window.eliminarFila = async function(pageKey, sectionIndex, rowIndex) {
   await guardarEnFirebase(pageKey);
 }
 
-// ---- OPERACIONES SOBRE TARJETAS (CARDS CON QUILL + COMPRESIÓN) ----
+// ---- OPERACIONES SOBRE TARJETAS (CARDS) ----
 window.editarCard = function(pageKey, sectionIndex, cardIndex) {
   currentEditPage = pageKey;
   currentEditSection = sectionIndex;
@@ -1348,13 +1334,6 @@ window.editarCard = function(pageKey, sectionIndex, cardIndex) {
     window.currentQuill = new Quill('#cardBodyEditor', {
       theme: 'snow',
       modules: {
-        imageCompress: {
-          quality: 0.7, 
-          maxWidth: 800, 
-          maxHeight: 800,
-          imageType: 'image/jpeg',
-          debug: false
-        },
         toolbar: [
           ['bold', 'italic', 'underline', 'strike'],
           ['blockquote', 'code-block'],
@@ -1393,13 +1372,6 @@ window.añadirCardNueva = function(pageKey, sectionIndex) {
       theme: 'snow',
       placeholder: 'Escribe el contenido o plantilla de la tarjeta aquí...',
       modules: {
-        imageCompress: {
-          quality: 0.7, 
-          maxWidth: 800, 
-          maxHeight: 800,
-          imageType: 'image/jpeg',
-          debug: false
-        },
         toolbar: [
           ['bold', 'italic', 'underline', 'strike'],
           ['blockquote', 'code-block'],
@@ -1690,6 +1662,34 @@ document.addEventListener('mouseup', async function(e) {
     currentResizer = null; currentTh = null; currentTable = null;
   }
 });
+
+// ---- LÓGICA DE REORDENACIÓN DE ELEMENTOS ----
+window.moverSeccion = async function(pageKey, secIdx, dir) {
+  const sections = LOCAL_DATA[pageKey].sections;
+  if (secIdx + dir < 0 || secIdx + dir >= sections.length) return;
+  const temp = sections[secIdx];
+  sections[secIdx] = sections[secIdx + dir];
+  sections[secIdx + dir] = temp;
+  await guardarEnFirebase(pageKey);
+}
+
+window.moverCard = async function(pageKey, secIdx, cardIdx, dir) {
+  const cards = LOCAL_DATA[pageKey].sections[secIdx].cards;
+  if (cardIdx + dir < 0 || cardIdx + dir >= cards.length) return;
+  const temp = cards[cardIdx];
+  cards[cardIdx] = cards[cardIdx + dir];
+  cards[cardIdx + dir] = temp;
+  await guardarEnFirebase(pageKey);
+}
+
+window.moverFila = async function(pageKey, secIdx, rowIdx, dir) {
+  const rows = LOCAL_DATA[pageKey].sections[secIdx].rows;
+  if (rowIdx + dir < 0 || rowIdx + dir >= rows.length) return;
+  const temp = rows[rowIdx];
+  rows[rowIdx] = rows[rowIdx + dir];
+  rows[rowIdx + dir] = temp;
+  await guardarEnFirebase(pageKey);
+}
 
 /* ============================================================
    MOTOR DE BÚSQUEDA GLOBAL ASÍNCRONO
