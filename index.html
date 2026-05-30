@@ -7,42 +7,36 @@
 
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/quill-image-compress@1.2.22/dist/quill.imageCompressor.min.js"></script>
 
 <style>
   :root {
-    --bg: #0c1117;
-    --bg-elev: #141b24;
-    --bg-card: #1c2531;
-    --bg-hover: #232e3c;
-    --border: #263040;
-    --border-soft: #1e2a37;
-    --text: #dde4ed;
-    --text-dim: #8fa0b4;
-    --text-muted: #566880;
+    --bg: #0f1419;
+    --bg-elev: #1a2128;
+    --bg-card: #232c36;
+    --bg-hover: #2d3743;
+    --border: #2f3a47;
+    --border-soft: #243140;
+    --text: #e6ebf1;
+    --text-dim: #9aa7b4;
+    --text-muted: #6b7785;
     --accent: #d4af37;
-    --accent-soft: rgba(212, 175, 55, 0.1);
+    --accent-soft: rgba(212, 175, 55, 0.12);
     --accent-hover: #e8c34a;
-    --danger: #e05c4a;
-    --success: #4caf7a;
+    --danger: #d97757;
+    --success: #6ab04c;
     --info: #4a9eff;
-    --warning: #f5a623;
-    --shadow: 0 12px 32px rgba(0,0,0,0.5);
-    --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
-    --radius: 7px;
-    --radius-lg: 12px;
-    --sidebar-w: 260px;
-    --topbar-h: 56px;
-    --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+    --shadow: 0 8px 24px rgba(0,0,0,0.4);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
+    --radius: 6px;
+    --radius-lg: 10px;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   html, body {
     height: 100%;
-    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg);
     color: var(--text);
     font-size: 14px;
@@ -53,16 +47,8 @@
   /* ===== LAYOUT ===== */
   .app {
     display: grid;
-    grid-template-columns: var(--sidebar-w) 1fr;
+    grid-template-columns: 260px 1fr;
     height: 100vh;
-    transition: grid-template-columns var(--transition);
-  }
-  .app.sidebar-collapsed {
-    grid-template-columns: 0px 1fr;
-  }
-  .app.sidebar-collapsed .sidebar {
-    transform: translateX(-100%);
-    pointer-events: none;
   }
 
   /* ===== SIDEBAR ===== */
@@ -72,114 +58,81 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: transform var(--transition);
-    position: relative;
-    z-index: 20;
   }
   .sidebar-header {
-    padding: 18px 16px 14px;
+    padding: 20px 18px 16px;
     border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
   }
   .sidebar-header .logo {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
   }
   .logo-mark {
-    width: 36px; height: 28px;
-    background: linear-gradient(135deg, var(--accent) 0%, #b8941f 100%);
+    width: 44px; height: 30px;
+    background: linear-gradient(135deg, var(--accent), #b8941f);
     border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
     font-weight: 700;
     color: #1a1a1a;
-    font-size: 11px;
-    letter-spacing: 0.8px;
-    flex-shrink: 0;
-    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.5px;
   }
   .sidebar-header h1 {
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text);
-    letter-spacing: 0.1px;
+    letter-spacing: 0.2px;
   }
   .sidebar-header .subtitle {
     font-size: 11px;
     color: var(--text-muted);
-    margin-top: 1px;
-    font-family: 'DM Mono', monospace;
-    letter-spacing: 0.3px;
+    margin-top: 2px;
   }
 
   .search-box {
-    padding: 10px 12px;
+    padding: 12px 14px;
     border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    position: relative;
   }
   .search-input {
     width: 100%;
     background: var(--bg-card);
     border: 1px solid var(--border);
     color: var(--text);
-    padding: 7px 32px 7px 11px;
+    padding: 8px 12px;
     border-radius: var(--radius);
     font-size: 13px;
     font-family: inherit;
     outline: none;
-    transition: border-color var(--transition), box-shadow var(--transition);
+    transition: border-color 0.15s;
   }
-  .search-input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
+  .search-input:focus { border-color: var(--accent); }
   .search-input::placeholder { color: var(--text-muted); }
-  .search-clear {
-    position: absolute;
-    right: 22px; top: 50%;
-    transform: translateY(-50%);
-    background: none; border: none;
-    color: var(--text-muted); cursor: pointer;
-    font-size: 14px; display: none;
-    padding: 2px;
-    transition: color var(--transition);
-  }
-  .search-clear:hover { color: var(--text); }
-  .search-clear.visible { display: block; }
 
   .nav {
     flex: 1;
     overflow-y: auto;
-    padding: 6px 0;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    padding: 8px 0;
   }
-  .nav::-webkit-scrollbar { width: 4px; }
-  .nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
   .nav-section {
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 1.2px;
+    letter-spacing: 1px;
     color: var(--text-muted);
-    padding: 12px 16px 5px;
+    padding: 14px 18px 6px;
     font-weight: 600;
-    font-family: 'DM Mono', monospace;
   }
   .nav-item {
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 8px 16px;
+    gap: 10px;
+    padding: 9px 18px;
     color: var(--text-dim);
     cursor: pointer;
     border-left: 2px solid transparent;
-    transition: all var(--transition);
+    transition: all 0.15s;
     font-size: 13px;
-    border-radius: 0;
-    position: relative;
   }
   .nav-item:hover {
     background: var(--bg-hover);
@@ -199,169 +152,45 @@
   }
 
   .sidebar-footer {
-    padding: 10px 16px;
+    padding: 10px 18px;
     border-top: 1px solid var(--border);
     font-size: 11px;
     color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-  .sidebar-footer kbd {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 1px 5px;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-  }
-  .status-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--text-muted);
-    display: inline-block;
-    transition: background 0.4s;
-    flex-shrink: 0;
-  }
-  .status-dot.online { background: var(--success); box-shadow: 0 0 0 2px rgba(76,175,122,0.2); }
-  .status-dot.offline { background: var(--danger); }
-  .status-dot.loading {
-    background: var(--warning);
-    animation: pulse-dot 1s infinite;
-  }
-  @keyframes pulse-dot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
   }
 
   /* ===== MAIN ===== */
   .main {
     overflow-y: auto;
     background: var(--bg);
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
   }
   .topbar {
     position: sticky;
     top: 0;
     z-index: 10;
-    height: var(--topbar-h);
-    background: rgba(12, 17, 23, 0.92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(15, 20, 25, 0.95);
+    backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--border-soft);
-    padding: 0 28px;
+    padding: 16px 32px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    flex-shrink: 0;
-  }
-  .topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-    flex: 1;
-  }
-  .sidebar-toggle {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    width: 30px; height: 30px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    transition: all var(--transition);
-    font-size: 16px;
-  }
-  .sidebar-toggle:hover { background: var(--bg-hover); color: var(--text); }
-  .topbar-title-block {
-    min-width: 0;
   }
   .topbar h2 {
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 600;
-    letter-spacing: 0.1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    letter-spacing: 0.3px;
   }
   .topbar .meta {
     color: var(--text-muted);
-    font-size: 11.5px;
-    font-family: 'DM Mono', monospace;
-  }
-  .topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
+    font-size: 12px;
   }
 
-  .content { padding: 24px 28px 60px; flex: 1; }
-
-  /* ===== PAGE ENTER ANIMATION ===== */
-  @keyframes pageIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .page-enter {
-    animation: pageIn 0.22s cubic-bezier(0.4,0,0.2,1) both;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
-
-  /* ===== SKELETON LOADING ===== */
-  .skeleton-wrap { padding: 4px 0; }
-  .skeleton-line {
-    background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 50%, var(--bg-card) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.4s infinite;
-    border-radius: 4px;
-    height: 14px;
-    margin-bottom: 10px;
-  }
-  .skeleton-line.wide  { width: 70%; }
-  .skeleton-line.med   { width: 50%; }
-  .skeleton-line.short { width: 30%; }
-  .skeleton-block {
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 14px;
-  }
-  @keyframes shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  /* ===== BREADCRUMB ===== */
-  .breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 20px;
-    font-family: 'DM Mono', monospace;
-  }
-  .breadcrumb span { cursor: pointer; transition: color var(--transition); }
-  .breadcrumb span:hover { color: var(--accent); }
-  .breadcrumb-sep { color: var(--border); }
+  .content { padding: 28px 32px 60px; }
 
   /* ===== HOME ===== */
   .home-hero {
-    margin-bottom: 28px;
-    padding: 22px 24px;
+    margin-bottom: 32px;
+    padding: 24px 28px;
     background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-card) 100%);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
@@ -371,39 +200,31 @@
   .home-hero::before {
     content: '';
     position: absolute;
-    top: -40%; right: -8%;
-    width: 280px; height: 280px;
-    background: radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%);
+    top: -50%; right: -10%;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
     pointer-events: none;
   }
-  .home-hero-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
   .home-hero h2 {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 700;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
     letter-spacing: -0.3px;
   }
-  .home-hero p { color: var(--text-dim); font-size: 13.5px; }
-  .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .home-hero p { color: var(--text-dim); font-size: 14px; }
 
   .home-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
   }
   .home-card {
     background: var(--bg-elev);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 16px;
+    padding: 18px;
     cursor: pointer;
-    transition: all var(--transition);
+    transition: all 0.2s;
     position: relative;
     overflow: hidden;
   }
@@ -415,26 +236,26 @@
   .home-card::after {
     content: '→';
     position: absolute;
-    top: 14px; right: 14px;
+    top: 16px; right: 16px;
     color: var(--text-muted);
-    font-size: 14px;
-    transition: all var(--transition);
+    font-size: 16px;
+    transition: all 0.2s;
   }
   .home-card:hover::after { color: var(--accent); transform: translateX(4px); }
   .home-card-icon {
-    width: 34px; height: 34px;
+    width: 36px; height: 36px;
     background: var(--accent-soft);
     border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
-    margin-bottom: 10px;
-    font-size: 17px;
+    margin-bottom: 12px;
+    font-size: 18px;
+    color: var(--accent);
   }
   .home-card h3 {
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 600;
     margin-bottom: 4px;
     color: var(--text);
-    padding-right: 20px;
   }
   .home-card p {
     font-size: 12px;
@@ -443,20 +264,19 @@
   }
 
   /* ===== SECTIONS ===== */
-  .section { margin-bottom: 26px; }
+  .section { margin-bottom: 28px; }
   .section-title {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1.5px;
     color: var(--accent);
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border-soft);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-family: 'DM Mono', monospace;
   }
   .section-title-left {
     display: flex;
@@ -465,11 +285,9 @@
   }
   .section-title-left::before {
     content: '';
-    width: 3px; height: 13px;
+    width: 4px; height: 14px;
     background: var(--accent);
     border-radius: 2px;
-    display: inline-block;
-    flex-shrink: 0;
   }
 
   /* ===== TABLE ===== */
@@ -478,7 +296,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow-x: auto;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
   }
   table {
     width: 100%;
@@ -492,406 +310,254 @@
     z-index: 1;
   }
   th {
-    position: relative;
+    position: relative; 
     text-align: left;
-    padding: 10px 14px;
+    padding: 12px 16px;
     font-weight: 600;
     color: var(--accent);
-    font-size: 10.5px;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.7px;
+    letter-spacing: 0.5px;
     border-bottom: 1px solid var(--border);
     border-right: 1px solid var(--border-soft);
-    font-family: 'DM Mono', monospace;
-    white-space: nowrap;
   }
   .resizer {
     position: absolute;
-    right: -3px; top: 0;
-    width: 6px; height: 100%;
+    right: -3px;
+    top: 0;
+    width: 6px;
+    height: 100%;
     cursor: col-resize;
     user-select: none;
     z-index: 10;
     background: transparent;
-    transition: background 0.15s;
+    transition: background 0.2s;
   }
-  .resizer:hover, .resizer.resizing { background: var(--accent); opacity: 0.8; }
+  .resizer:hover, .resizer.resizing {
+    background: var(--accent);
+    opacity: 0.8;
+  }
   td {
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border-soft);
     border-right: 1px solid var(--border-soft);
     color: var(--text);
     vertical-align: top;
     white-space: pre-wrap;
-    transition: background var(--transition);
   }
-  th:last-child, td:last-child { border-right: none; }
+  th:last-child, td:last-child {
+    border-right: none; 
+  }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: rgba(255,255,255,0.02); }
   td.muted { color: var(--text-muted); }
-
-  /* ===== PILLS ===== */
-  .pill {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    font-family: 'DM Mono', monospace;
-  }
-  .pill.chrome { background: rgba(74,158,255,0.15); color: var(--info); border: 1px solid rgba(74,158,255,0.3); }
-  .pill.edge   { background: rgba(76,175,122,0.12); color: var(--success); border: 1px solid rgba(76,175,122,0.25); }
 
   /* ===== CARDS layout ===== */
   .card {
     background: var(--bg-elev);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 15px 16px;
-    margin-bottom: 12px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
     width: 100%;
-    transition: border-color var(--transition);
   }
-  .card:hover { border-color: rgba(212,175,55,0.25); }
   .card h4 {
     color: var(--accent);
-    font-size: 10.5px;
+    font-size: 12px;
     text-transform: uppercase;
-    letter-spacing: 0.9px;
-    margin-bottom: 9px;
-    padding-bottom: 7px;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
     border-bottom: 1px solid var(--border-soft);
-    font-family: 'DM Mono', monospace;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  /* ===== COMPACT TABLE MODE ===== */
-  body.table-compact table      { font-size: 11px; }
-  body.table-compact th         { padding: 5px 10px; font-size: 9.5px; }
-  body.table-compact td         { padding: 4px 10px; line-height: 1.35; }
-  body.table-compact .ql-editor { font-size: 11px; line-height: 1.35; }
-
-  #compactBtn.active {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-    color: var(--accent);
   }
 
   /* ===== Notes ===== */
   .notes {
-    background: rgba(74, 158, 255, 0.05);
+    background: rgba(74, 158, 255, 0.06);
     border-left: 3px solid var(--info);
-    padding: 11px 14px;
+    padding: 12px 16px;
     border-radius: 0 var(--radius) var(--radius) 0;
     font-size: 12.5px;
     color: var(--text-dim);
-    margin-bottom: 16px;
+    margin-bottom: 18px;
   }
-  .notes p { margin-bottom: 5px; }
+  .notes p { margin-bottom: 6px; }
   .notes p:last-child { margin-bottom: 0; }
   .notes .label {
     color: var(--info);
     font-weight: 600;
-    font-size: 10px;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.5px;
     display: block;
-    margin-bottom: 5px;
-    font-family: 'DM Mono', monospace;
+    margin-bottom: 6px;
   }
 
   /* ===== LINKS & UTILS ===== */
-  a { color: var(--info); text-decoration: none; border-bottom: 1px dashed transparent; transition: border-color 0.15s; word-break: break-all; }
+  a {
+    color: var(--info);
+    text-decoration: none;
+    border-bottom: 1px dashed transparent;
+    transition: border-color 0.15s;
+    word-break: break-all;
+  }
   a:hover { border-bottom-color: var(--info); }
   a.tel { color: var(--success); }
   a.mail { color: var(--accent); }
   mark { background: var(--accent); color: #1a1a1a; padding: 0 2px; border-radius: 2px; }
-  .empty { text-align: center; color: var(--text-muted); padding: 60px 40px; font-style: italic; }
-
-  /* ===== BUTTONS ===== */
-  .btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 7px 14px; border-radius: var(--radius);
-    font-size: 12.5px; font-weight: 600; cursor: pointer;
-    border: none; font-family: inherit; transition: all var(--transition);
-    letter-spacing: 0.1px;
-    white-space: nowrap;
-  }
-  .btn-primary { background: var(--accent); color: #1a1a1a; }
-  .btn-primary:hover { background: var(--accent-hover); }
-  .btn-secondary { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); }
-  .btn-secondary:hover { background: var(--bg-hover); color: var(--text); border-color: var(--text-muted); }
-  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
-  .btn-ghost:hover { background: var(--bg-hover); color: var(--text); }
-  .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
-  .btn-danger:hover { background: rgba(224,92,74,0.1); }
-  .btn-info { background: var(--info); color: #fff; }
-  .btn-info:hover { background: #3a8ee5; }
-  .btn-sm { padding: 5px 10px; font-size: 11.5px; }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .empty { text-align: center; color: var(--text-muted); padding: 40px; font-style: italic; }
 
   /* ===== MODAL ===== */
   .modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center;
-    z-index: 100; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    animation: fadeIn 0.15s ease both;
+    background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100;
+    backdrop-filter: blur(4px);
   }
   .modal-content {
     background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg);
-    width: 600px; max-width: 95%; padding: 0; box-shadow: var(--shadow);
-    animation: modalIn 0.2s cubic-bezier(0.4,0,0.2,1) both;
-    display: flex; flex-direction: column;
-    overflow: hidden;
+    width: 600px; max-width: 95%; padding: 22px; box-shadow: var(--shadow);
+    transition: all 0.3s ease;
   }
-  @keyframes modalIn {
-    from { opacity: 0; transform: scale(0.96) translateY(8px); }
-    to   { opacity: 1; transform: scale(1) translateY(0); }
-  }
-  .modal-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 16px 20px; border-bottom: 1px solid var(--border-soft);
-    flex-shrink: 0;
-  }
-  .modal-header h3 { color: var(--accent); font-size: 14.5px; font-weight: 600; }
-  .modal-close {
-    background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim);
-    width: 28px; height: 28px; border-radius: 6px;
-    font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: all var(--transition); line-height: 1;
-  }
-  .modal-close:hover { background: var(--bg-hover); color: var(--text); }
-  .modal-body {
-    padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;
-    overflow-y: auto; flex: 1;
-    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-  }
-  .modal-footer {
-    display: flex; justify-content: flex-end; gap: 8px;
-    border-top: 1px solid var(--border-soft); padding: 12px 20px;
-    flex-shrink: 0;
-  }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-soft); padding-bottom: 10px; }
+  .modal-header h3 { color: var(--accent); font-size: 15px; font-weight: 600; }
+  .modal-close { background: transparent; border: none; color: var(--text-dim); font-size: 22px; cursor: pointer; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { margin-bottom: 20px; display: flex; flex-direction: column; gap: 14px; max-height: 65vh; overflow-y: auto; padding-right: 4px; }
   .modal-field { display: flex; flex-direction: column; gap: 5px; }
-  .modal-field label { color: var(--text-dim); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; font-family: 'DM Mono', monospace; }
+  .modal-field label { color: var(--text-dim); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
   .modal-field input, .modal-field textarea, .modal-field select {
-    background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
-    padding: 8px 12px; border-radius: var(--radius); font-family: inherit; font-size: 13px;
-    outline: none; transition: border-color var(--transition), box-shadow var(--transition);
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 9px 12px; border-radius: var(--radius); font-family: inherit; font-size: 13px; outline: none; transition: border-color 0.15s;
   }
-  .modal-field input:focus, .modal-field textarea:focus, .modal-field select:focus {
-    border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+  .modal-field input:focus, .modal-field textarea:focus, .modal-field select:focus { border-color: var(--accent); }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-soft); padding-top: 14px; }
+  .btn-save { background: var(--accent); color: #1a1a1a; padding: 8px 18px; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; font-size: 13px; transition: background 0.15s; }
+  .btn-save:hover { background: var(--accent-hover); }
+  .btn-action-ui { background: transparent; border: none; cursor: pointer; font-size: 14px; opacity: 0.4; transition: opacity 0.15s; padding: 2px; }
+  .btn-action-ui:hover { opacity: 1; }
+  
+  /* ESTILOS PARA EDICIÓN MASIVA (BULK) - ContentEditable */
+  .bulk-input {
+    width: 100%; min-width: 150px; background: transparent; border: none; color: var(--text); 
+    font-family: inherit; font-size: 13px; outline: none; padding: 6px;
   }
-  .modal-field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23566880' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
-
-  .btn-action-ui { background: transparent; border: none; cursor: pointer; font-size: 14px; opacity: 0.35; transition: opacity var(--transition); padding: 3px; border-radius: 4px; }
-  .btn-action-ui:hover { opacity: 1; background: var(--bg-hover); }
-
-  /* ===== BULK EDIT ===== */
-  .bulk-input { width: 100%; min-width: 120px; background: transparent; border: none; color: var(--text); font-family: inherit; font-size: 13px; outline: none; padding: 6px 8px; }
-  .bulk-input:focus { background: rgba(212,175,55,0.05); }
+  .bulk-input:focus { background: rgba(255,255,255,0.03); }
   .bulk-input p { margin: 0; padding: 0; }
 
-  /* ===== QUILL DARK MODE ===== */
+  /* ===== ESTILOS QUILL (MODO OSCURO) ===== */
   .ql-toolbar.ql-snow { border: 1px solid var(--border-soft) !important; background: var(--bg-elev); border-radius: var(--radius) var(--radius) 0 0; }
-  .ql-container.ql-snow { border: 1px solid var(--border-soft) !important; background: var(--bg-card); border-radius: 0 0 var(--radius) var(--radius); font-family: 'DM Sans', system-ui, sans-serif; font-size: 13px; color: var(--text); }
-  .ql-editor { font-family: inherit; line-height: 1.6; padding: 13px; }
+  .ql-container.ql-snow { border: 1px solid var(--border-soft) !important; background: var(--bg-card); border-radius: 0 0 var(--radius) var(--radius); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; color: var(--text); }
+  .ql-editor { font-family: inherit; line-height: 1.6; padding: 15px; }
+  
   .quill-card-editor .ql-editor { min-height: 200px; }
   .quill-table-editor .ql-editor { min-height: 80px; max-height: 250px; overflow-y: auto; }
+
   .ql-snow .ql-stroke { stroke: var(--text-dim) !important; }
   .ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill { fill: var(--text-dim) !important; }
   .ql-snow .ql-picker { color: var(--text-dim) !important; }
-  .ql-editor.ql-blank::before { color: rgba(154, 167, 180, 0.4) !important; font-style: normal; }
+  .ql-editor.ql-blank::before { color: rgba(154, 167, 180, 0.5) !important; font-style: normal; }
+  
   .card .ql-editor, td .ql-editor { padding: 0; min-height: auto; overflow: visible; white-space: normal; }
   td .ql-editor p { margin: 0; padding: 0; }
-
-  /* ===== ADMIN ROLES ===== */
-  .admin-only { display: none !important; }
-  body.is-admin .admin-only { display: inline-flex !important; }
-  body.is-admin th.admin-only, body.is-admin td.admin-only { display: table-cell !important; }
-  body.is-admin div.admin-only { display: flex !important; }
-
-  /* ===== TOAST NOTIFICATIONS ===== */
-  #toast-container {
-    position: fixed; bottom: 24px; right: 24px;
-    z-index: 9999; display: flex; flex-direction: column; gap: 8px;
-    pointer-events: none;
+  
+  /* ========================================================
+     SISTEMA DE ROLES CSS
+     ======================================================== */
+  .admin-only {
+    display: none !important;
   }
-  .toast {
-    display: flex; align-items: center; gap: 10px;
-    background: var(--bg-elev); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 10px 14px;
-    font-size: 13px; color: var(--text);
-    box-shadow: var(--shadow);
-    animation: toastIn 0.25s cubic-bezier(0.4,0,0.2,1) both;
-    pointer-events: all;
-    min-width: 220px; max-width: 360px;
+  body.is-admin .admin-only {
+    display: inline-flex !important;
   }
-  .toast.success { border-left: 3px solid var(--success); }
-  .toast.error   { border-left: 3px solid var(--danger); }
-  .toast.info    { border-left: 3px solid var(--info); }
-  .toast.warning { border-left: 3px solid var(--warning); }
-  .toast-out { animation: toastOut 0.2s ease forwards; }
-  @keyframes toastIn {
-    from { opacity: 0; transform: translateX(20px); }
-    to   { opacity: 1; transform: translateX(0); }
+  body.is-admin th.admin-only, 
+  body.is-admin td.admin-only {
+    display: table-cell !important;
   }
-  @keyframes toastOut {
-    from { opacity: 1; transform: translateX(0); }
-    to   { opacity: 0; transform: translateX(20px); }
-  }
-
-  /* ===== CONFIRM DIALOG ===== */
-  #confirmDialog {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
-    display: none; align-items: center; justify-content: center;
-    z-index: 200;
-  }
-  #confirmDialog.open { display: flex; animation: fadeIn 0.15s ease both; }
-  .confirm-box {
-    background: var(--bg-elev); border: 1px solid var(--border);
-    border-radius: var(--radius-lg); padding: 24px; max-width: 380px; width: 90%;
-    box-shadow: var(--shadow);
-    animation: modalIn 0.2s cubic-bezier(0.4,0,0.2,1) both;
-  }
-  .confirm-box h4 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
-  .confirm-box p  { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; line-height: 1.5; }
-  .confirm-box .confirm-btns { display: flex; gap: 8px; justify-content: flex-end; }
-
-  /* ===== RESULT SECTION ===== */
-  .result-section { margin-bottom: 24px; }
-  .result-tag {
-    cursor: pointer; color: var(--accent);
-    font-weight: 600; font-size: 13px;
-    transition: color var(--transition);
-  }
-  .result-tag:hover { color: var(--accent-hover); text-decoration: underline; }
-
-  /* ===== RESPONSIVE ===== */
-  @media (max-width: 720px) {
-    .app { grid-template-columns: 0px 1fr; }
-    .sidebar {
-      position: fixed; left: 0; top: 0; bottom: 0;
-      z-index: 50; transform: translateX(-100%);
-    }
-    .app.sidebar-open .sidebar { transform: translateX(0); }
-    .app.sidebar-open::after {
-      content: '';
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 40;
-    }
-    .content { padding: 16px 16px 60px; }
-    .topbar { padding: 0 16px; }
+  body.is-admin div.admin-only {
+    display: flex !important;
   }
 </style>
 </head>
 <body>
 
-<div class="app" id="app">
-  <aside class="sidebar" id="sidebar">
+<div class="app">
+  <aside class="sidebar">
     <div class="sidebar-header">
       <div class="logo">
         <div class="logo-mark">UNIR</div>
-        <h1>Manual Técnico</h1>
+        <h1>Herramientas UNIR</h1>
       </div>
-      <div class="subtitle">Guía Rápida de Técnico V2.0</div>
+      <div class="subtitle">Guía Rápida de Agente · v2.9</div>
     </div>
 
     <div class="search-box">
-      <input type="text" class="search-input" id="searchInput" placeholder="🔍  Buscar en la guía...  Ctrl+K" autocomplete="off">
-      <button class="search-clear" id="searchClear" title="Limpiar búsqueda">✕</button>
+      <input type="text" class="search-input" id="searchInput" placeholder="🔍 Buscar en toda la guía...">
     </div>
 
-    <nav class="nav" id="nav"></nav>
-
-    <div class="sidebar-footer">
-      <span><kbd>Ctrl</kbd>+<kbd>K</kbd> buscar</span>
-      <span id="statusWrap" style="display:flex;align-items:center;gap:5px;">
-        <span class="status-dot loading" id="statusDot"></span>
-        <span id="statusText" style="font-size:10px;">Cargando...</span>
-      </span>
-    </div>
+    <nav class="nav" id="nav">
+      </nav>
+    <div class="sidebar-footer">Pulsa <code>Ctrl+K</code> para buscar</div>
   </aside>
 
   <main class="main" id="main">
     <div class="topbar">
-      <div class="topbar-left">
-        <button class="sidebar-toggle" id="sidebarToggle" title="Ocultar/Mostrar menú">☰</button>
-        <div class="topbar-title-block">
-          <h2 id="pageTitle">Inicio</h2>
-          <div class="meta" id="pageMeta"></div>
-        </div>
+      <div>
+        <h2 id="pageTitle">Inicio</h2>
+        <div class="meta" id="pageMeta"></div>
       </div>
-      <div class="topbar-right">
-        <button id="compactBtn" class="btn btn-ghost btn-sm" title="Alternar vista compacta de tablas">⇅ Compacto</button>
-        <button id="authBtn" class="btn btn-ghost btn-sm">🔒 Iniciar Sesión</button>
+      <div>
+        <button id="authBtn" style="background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+          🔒 Iniciar Sesión
+        </button>
       </div>
     </div>
     <div class="content" id="content"></div>
   </main>
 </div>
 
-<!-- TOAST CONTAINER -->
-<div id="toast-container"></div>
-
-<!-- CONFIRM DIALOG -->
-<div id="confirmDialog">
-  <div class="confirm-box">
-    <h4 id="confirmTitle">¿Confirmar acción?</h4>
-    <p id="confirmMsg"></p>
-    <div class="confirm-btns">
-      <button class="btn btn-ghost btn-sm" id="confirmCancel">Cancelar</button>
-      <button class="btn btn-danger btn-sm" id="confirmOk">Eliminar</button>
-    </div>
-  </div>
-</div>
-
-<!-- EDIT MODAL -->
 <div id="editModal" class="modal-overlay" style="display: none;">
   <div class="modal-content" id="modalContentBox">
     <div class="modal-header">
       <h3 id="modalTitle">Editar Registro</h3>
-      <button id="closeModalBtn" class="modal-close">✕</button>
+      <button id="closeModalBtn" class="modal-close">&times;</button>
     </div>
-    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-body" id="modalBody">
+      </div>
     <div class="modal-footer">
-      <button id="cancelModalBtn" class="btn btn-ghost btn-sm">Cancelar</button>
-      <button id="saveModalBtn" class="btn btn-primary btn-sm">Guardar Cambios</button>
+      <button id="saveModalBtn" class="btn-save">Guardar Cambios</button>
     </div>
   </div>
 </div>
 
-<!-- LOGIN MODAL -->
 <div id="loginModal" class="modal-overlay" style="display: none;">
-  <div class="modal-content" style="width: 360px; max-width: 95%;">
+  <div class="modal-content" style="width: 350px;">
     <div class="modal-header">
-      <h3>🔐 Acceso Administrador</h3>
-      <button id="closeLoginBtn" class="modal-close">✕</button>
+      <h3>Acceso Administrador</h3>
+      <button id="closeLoginBtn" class="modal-close">&times;</button>
     </div>
     <div class="modal-body">
       <div class="modal-field">
         <label>Correo Electrónico</label>
-        <input type="email" id="loginEmail" placeholder="usuario@unir.net" autocomplete="email">
+        <input type="email" id="loginEmail" placeholder="usuario@ejemplo.com">
       </div>
       <div class="modal-field">
         <label>Contraseña</label>
-        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+        <input type="password" id="loginPassword" placeholder="••••••••">
       </div>
-      <div id="loginError" style="color: var(--danger); font-size: 12px; display: none; font-weight: 500; padding: 8px 10px; background: rgba(224,92,74,0.08); border-radius: var(--radius); border: 1px solid rgba(224,92,74,0.2);"></div>
+      <div id="loginError" style="color: var(--danger); font-size: 12px; display: none; margin-top: 10px; font-weight: 600;"></div>
     </div>
     <div class="modal-footer">
-      <button id="submitLoginBtn" class="btn btn-primary">Entrar al Sistema</button>
+      <button id="submitLoginBtn" class="btn-save">Entrar al Sistema</button>
     </div>
   </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, collection, getDocs, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, collection, getDocs, setDoc, deleteDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+// REGISTRO GLOBAL DEL COMPRESOR DE IMÁGENES
+Quill.register('modules/imageCompress', imageCompressor);
 
 const firebaseConfig = {
   apiKey: "AIzaSyBc_rVSeTa-RVG9jMvuNoTlKVFIMfVlCQE",
@@ -904,67 +570,32 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-let LOCAL_DATA = {};
-let SEARCH_INDEX = [];
-let currentEditPage = null;
-let currentEditSection = null;
-let currentEditIndex = null;
-let currentEditType = null;
-window.currentQuill = null;
-window.currentTableQuills = {};
-
-/* ============================================================
-   TOAST SYSTEM
-   ============================================================ */
-function toast(msg, type = 'info', duration = 3000) {
-  const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
-  const container = document.getElementById('toast-container');
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.innerHTML = `<span style="font-size:15px;color:var(--${type === 'success' ? 'success' : type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'})">${icons[type]}</span><span>${msg}</span>`;
-  container.appendChild(el);
-  setTimeout(() => {
-    el.classList.add('toast-out');
-    setTimeout(() => el.remove(), 220);
-  }, duration);
-}
-
-/* ============================================================
-   CONFIRM DIALOG
-   ============================================================ */
-function confirmDialog(title, msg, okLabel = 'Eliminar') {
-  return new Promise(resolve => {
-    const dialog = document.getElementById('confirmDialog');
-    document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmMsg').textContent = msg;
-    document.getElementById('confirmOk').textContent = okLabel;
-    dialog.classList.add('open');
-    const cleanup = (result) => {
-      dialog.classList.remove('open');
-      resolve(result);
-    };
-    document.getElementById('confirmOk').onclick = () => cleanup(true);
-    document.getElementById('confirmCancel').onclick = () => cleanup(false);
-  });
-}
-
-/* ============================================================
-   SIDEBAR TOGGLE
-   ============================================================ */
-let sidebarCollapsed = false;
-document.getElementById('sidebarToggle').addEventListener('click', () => {
-  sidebarCollapsed = !sidebarCollapsed;
-  document.getElementById('app').classList.toggle('sidebar-collapsed', sidebarCollapsed);
-  // Mobile: toggle sidebar-open instead
-  if (window.innerWidth <= 720) {
-    document.getElementById('app').classList.toggle('sidebar-open', !sidebarCollapsed);
+// ACTIVAR MODO OFFLINE (Persistencia) para evitar fallos de guardado con conexiones lentas
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    console.warn("La persistencia falló: Múltiples pestañas abiertas.");
+  } else if (err.code == 'unimplemented') {
+    console.warn("El navegador actual no soporta el modo offline.");
   }
 });
 
+const auth = getAuth(app); 
+
+let LOCAL_DATA = {};
+let SEARCH_INDEX = [];
+
+let currentEditPage = null;
+let currentEditSection = null;
+let currentEditIndex = null;
+let currentEditType = null; 
+
+// Controles Globales para Editores Quill
+window.currentQuill = null; 
+window.currentTableQuills = {}; 
+
 /* ============================================================
-   AUTENTICACIÓN
+   LÓGICA DE AUTENTICACIÓN Y ROLES
    ============================================================ */
 onAuthStateChanged(auth, (user) => {
   if (user) {
@@ -977,16 +608,16 @@ onAuthStateChanged(auth, (user) => {
     document.body.classList.remove('is-admin');
     const authBtn = document.getElementById('authBtn');
     authBtn.innerHTML = '🔒 Iniciar Sesión';
-    authBtn.style.color = '';
-    authBtn.style.borderColor = '';
+    authBtn.style.color = 'var(--text-dim)';
+    authBtn.style.borderColor = 'var(--border)';
   }
 });
 
 document.getElementById('authBtn').addEventListener('click', () => {
   if (auth.currentUser) {
-    confirmDialog('Cerrar sesión', '¿Estás seguro de que quieres salir del modo administrador?', 'Cerrar sesión').then(ok => {
-      if (ok) { signOut(auth); toast('Sesión cerrada', 'info'); }
-    });
+    if (confirm("¿Estás seguro de que quieres cerrar sesión y salir del modo administrador?")) {
+      signOut(auth);
+    }
   } else {
     document.getElementById('loginModal').style.display = 'flex';
   }
@@ -996,31 +627,24 @@ document.getElementById('closeLoginBtn').addEventListener('click', () => {
   document.getElementById('loginModal').style.display = 'none';
 });
 
-document.getElementById('loginPassword').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('submitLoginBtn').click();
-});
-
 document.getElementById('submitLoginBtn').addEventListener('click', async () => {
   const email = document.getElementById('loginEmail').value;
   const pass = document.getElementById('loginPassword').value;
   const errorDiv = document.getElementById('loginError');
   const btn = document.getElementById('submitLoginBtn');
-
+  
   errorDiv.style.display = 'none';
   btn.textContent = 'Verificando...';
-  btn.disabled = true;
-
+  
   try {
     await signInWithEmailAndPassword(auth, email, pass);
     document.getElementById('loginModal').style.display = 'none';
-    document.getElementById('loginPassword').value = '';
-    toast('Bienvenido, administrador', 'success');
+    document.getElementById('loginPassword').value = ''; 
   } catch (error) {
     errorDiv.textContent = '⚠️ Credenciales incorrectas. Verifica tu correo y contraseña.';
     errorDiv.style.display = 'block';
   } finally {
     btn.textContent = 'Entrar al Sistema';
-    btn.disabled = false;
   }
 });
 
@@ -1028,108 +652,129 @@ document.getElementById('submitLoginBtn').addEventListener('click', async () => 
    INICIALIZACIÓN
    ============================================================ */
 async function initApp() {
-  setStatus('loading', 'Cargando...');
-  renderSkeleton();
+  document.getElementById('content').innerHTML = '<div class="empty">Conectando con Firebase y descargando base de datos... ⏳</div>';
   try {
     const querySnapshot = await getDocs(collection(db, "guias_ipc"));
-    querySnapshot.forEach((d) => { LOCAL_DATA[d.id] = d.data(); });
-    if (!LOCAL_DATA['home']) LOCAL_DATA['home'] = { title: "Inicio", cards: [] };
+    querySnapshot.forEach((doc) => {
+      LOCAL_DATA[doc.id] = doc.data();
+    });
+    
+    if (!LOCAL_DATA['home']) {
+        LOCAL_DATA['home'] = { title: "Inicio", cards: [] };
+    }
+
     buildSearchIndex();
-    renderSidebar();
+    renderSidebar(); 
     renderPage('home');
-    setStatus('online', 'Conectado');
   } catch (error) {
-    console.error("Error crítico inicializando:", error);
-    document.getElementById('content').innerHTML = '<div class="empty" style="color:var(--danger)">⚡ Error al conectar con Firebase. Verifica la conexión o las reglas de acceso.</div>';
-    setStatus('offline', 'Sin conexión');
+    console.error("Error crítico inicializando base de datos:", error);
+    document.getElementById('content').innerHTML = '<div class="empty" style="color:var(--danger)">Error al conectar con la nube. Verifica la conexión o las reglas de Firebase.</div>';
   }
 }
 
-function setStatus(type, text) {
-  document.getElementById('statusDot').className = `status-dot ${type}`;
-  document.getElementById('statusText').textContent = text;
-}
-
-function renderSkeleton() {
-  document.getElementById('content').innerHTML = `
-    <div class="skeleton-wrap page-enter">
-      <div class="skeleton-block">
-        <div class="skeleton-line wide"></div>
-        <div class="skeleton-line med"></div>
-        <div class="skeleton-line short"></div>
-      </div>
-      <div class="skeleton-block">
-        <div class="skeleton-line wide"></div>
-        <div class="skeleton-line wide"></div>
-        <div class="skeleton-line med"></div>
-      </div>
-      <div class="skeleton-block">
-        <div class="skeleton-line short"></div>
-        <div class="skeleton-line wide"></div>
-      </div>
-    </div>`;
-}
-
 /* ============================================================
-   PDF EXPORT
+   GENERADOR PDF
    ============================================================ */
 window.exportarTodoAPDF = function() {
   const printDiv = document.createElement('div');
   printDiv.id = 'print-container';
   printDiv.style.cssText = 'background: white; color: black; font-family: sans-serif; padding: 20px;';
-  let printHtml = `<div style="text-align:center; margin-bottom: 40px;"><h1 style="font-size:28px;margin-bottom:5px;">Guía de Herramientas UNIR</h1><p style="color:#666;">Exportación completa de procedimientos y enlaces</p></div>`;
+
+  let printHtml = `
+    <div style="text-align:center; margin-bottom: 40px;">
+      <h1 style="font-size: 28px; margin-bottom: 5px;">Guía de Herramientas UNIR</h1>
+      <p style="color: #666;">Exportación completa de procedimientos y enlaces</p>
+    </div>
+  `;
+
+  // Iterar en el orden configurado en el Inicio
   const order = (LOCAL_DATA['home']?.cards || []).map(c => c.id);
+  
   order.forEach((key, index) => {
     const page = LOCAL_DATA[key];
     if (!page) return;
+
     const pageBreak = index === 0 ? '' : 'page-break-before: always;';
+
     printHtml += `<div style="${pageBreak} margin-bottom: 30px;">`;
-    printHtml += `<h2 style="color:#1a2128; border-bottom:2px solid #d4af37; padding-bottom:8px; margin-bottom:20px; font-size:22px;">${escapeHTML(page.title)}</h2>`;
+    printHtml += `<h2 style="color: #1a2128; border-bottom: 2px solid #d4af37; padding-bottom: 8px; margin-bottom: 20px; font-size: 22px;">${escapeHTML(page.title)}</h2>`;
+
     (page.sections || []).forEach(sec => {
-      printHtml += `<h3 style="color:#2d3743; margin-top:25px; margin-bottom:12px; font-size:16px;">${escapeHTML(sec.title)}</h3>`;
+      printHtml += `<h3 style="color: #2d3743; margin-top: 25px; margin-bottom: 12px; font-size: 16px;">${escapeHTML(sec.title)}</h3>`;
+      
       if (sec.type === 'table') {
-        printHtml += `<table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:12px;page-break-inside:auto;">`;
-        if (sec.headers?.length) {
-          printHtml += `<thead><tr>${sec.headers.map(h => `<th style="border:1px solid #aaa;padding:8px;background:#f4f4f4;text-align:left;color:#333;">${escapeHTML(h)}</th>`).join('')}</tr></thead>`;
+        printHtml += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; page-break-inside: auto;">`;
+        if (sec.headers && sec.headers.length) {
+          printHtml += `<thead><tr>`;
+          sec.headers.forEach(h => {
+            printHtml += `<th style="border: 1px solid #aaa; padding: 8px; background: #f4f4f4; text-align:left; color: #333;">${escapeHTML(h)}</th>`;
+          });
+          printHtml += `</tr></thead>`;
         }
         printHtml += `<tbody>`;
         (sec.rows || []).forEach(row => {
-          printHtml += `<tr style="page-break-inside:avoid;">`;
+          printHtml += `<tr style="page-break-inside: avoid;">`;
           (sec.headers || []).forEach((_, idx) => {
             let cell = row[idx] !== undefined ? String(row[idx]) : '';
-            printHtml += `<td style="border:1px solid #aaa;padding:8px;color:#000;white-space:pre-wrap;">${smartFormat(cell)}</td>`;
+            printHtml += `<td style="border: 1px solid #aaa; padding: 8px; color: #000; white-space: pre-wrap;">${smartFormat(cell)}</td>`;
           });
           printHtml += `</tr>`;
         });
         printHtml += `</tbody></table>`;
       } else if (sec.type === 'cards') {
         (sec.cards || []).forEach(card => {
-          printHtml += `<div style="border:1px solid #aaa;border-radius:6px;padding:15px;margin-bottom:15px;page-break-inside:avoid;background:#fefefe;"><h4 style="margin:0 0 10px 0;color:#1a2128;font-size:14px;border-bottom:1px solid #eee;padding-bottom:5px;">${escapeHTML(card.title)}</h4><div style="font-size:13px;color:#333;line-height:1.5;">${card.body}</div></div>`;
+          printHtml += `<div style="border: 1px solid #aaa; border-radius: 6px; padding: 15px; margin-bottom: 15px; page-break-inside: avoid; background: #fefefe;">
+            <h4 style="margin: 0 0 10px 0; color: #1a2128; font-size: 14px; border-bottom: 1px solid #eee; padding-bottom: 5px;">${escapeHTML(card.title)}</h4>
+            <div style="font-size: 13px; color: #333; line-height: 1.5;">${card.body}</div>
+          </div>`;
         });
       }
     });
-    if (page.notes?.length) {
-      printHtml += `<div style="margin-top:20px;padding:12px;background:#fffcf0;border-left:4px solid #d4af37;font-size:12px;page-break-inside:avoid;"><strong style="display:block;margin-bottom:5px;">Notas:</strong><ul style="margin:0;padding-left:20px;">`;
-      page.notes.forEach(n => { printHtml += `<li style="margin-bottom:4px;">${smartFormat(n)}</li>`; });
+
+    if (page.notes && page.notes.length) {
+      printHtml += `<div style="margin-top: 20px; padding: 12px; background: #fffcf0; border-left: 4px solid #d4af37; font-size: 12px; page-break-inside: avoid;">
+        <strong style="display:block; margin-bottom: 5px;">Notas:</strong><ul style="margin:0; padding-left: 20px;">`;
+      page.notes.forEach(n => {
+        printHtml += `<li style="margin-bottom: 4px;">${smartFormat(n)}</li>`;
+      });
       printHtml += `</ul></div>`;
     }
+
     printHtml += `</div>`;
   });
+
   printDiv.innerHTML = printHtml;
   document.body.appendChild(printDiv);
+
   const style = document.createElement('style');
   style.id = 'print-style';
-  style.innerHTML = `@media print { html,body{height:auto!important;overflow:visible!important;background:white!important;margin:0;padding:0;} .app,.modal-overlay,#loginModal,#toast-container,#confirmDialog{display:none!important;} #print-container{display:block!important;} a{text-decoration:none;color:#1a0dab;} .ql-editor{padding:0;overflow:visible!important;} .ql-editor *{color:black!important;} }`;
+  style.innerHTML = `
+    @media print {
+      html, body { 
+        height: auto !important; 
+        overflow: visible !important; 
+        background: white !important; 
+        margin: 0; 
+        padding: 0; 
+      }
+      .app, .modal-overlay, #loginModal { display: none !important; }
+      #print-container { display: block !important; }
+      a { text-decoration: none; color: #1a0dab; }
+      .ql-editor { padding: 0; overflow: visible !important; }
+      .ql-editor * { color: black !important; }
+    }
+  `;
   document.head.appendChild(style);
+
   setTimeout(() => {
     window.print();
     document.body.removeChild(printDiv);
     document.head.removeChild(style);
   }, 300);
-};
+}
 
 /* ============================================================
-   RENDERIZADO DE SIDEBAR
+   RENDERIZADO INTERFAZ Y MENÚ
    ============================================================ */
 window.renderSidebar = function() {
   const nav = document.getElementById('nav');
@@ -1138,113 +783,136 @@ window.renderSidebar = function() {
     <div class="nav-item ${currentPage === 'home' ? 'active' : ''}" data-target="home">
       <span class="nav-icon">🏠</span> Inicio
     </div>
-    <div class="nav-section">Categorías</div>
+    <div class="nav-section">Categorías Documentales</div>
   `;
-  (LOCAL_DATA['home']?.cards || []).forEach(c => {
-    html += `<div class="nav-item ${currentPage === c.id ? 'active' : ''}" data-target="${c.id}"><span class="nav-icon">${escapeHTML(c.icon)}</span> ${escapeHTML(c.title)}</div>`;
+  
+  const homeCards = LOCAL_DATA['home']?.cards || [];
+  
+  homeCards.forEach(c => {
+    html += `
+      <div class="nav-item ${currentPage === c.id ? 'active' : ''}" data-target="${c.id}">
+        <span class="nav-icon">${escapeHTML(c.icon)}</span> ${escapeHTML(c.title)}
+      </div>
+    `;
   });
+  
   nav.innerHTML = html;
+
   nav.querySelectorAll('.nav-item').forEach(n => {
     n.addEventListener('click', () => {
       currentPage = n.dataset.target;
       document.getElementById('searchInput').value = '';
-      document.getElementById('searchClear').classList.remove('visible');
       renderPage(currentPage);
       renderSidebar();
-      if (window.innerWidth <= 720) {
-        document.getElementById('app').classList.remove('sidebar-open');
-      }
     });
   });
-};
+}
 
-/* ============================================================
-   RENDERIZADO DE PÁGINA
-   ============================================================ */
 function smartFormat(text) {
   if (!text) return '';
   const str = String(text);
-  if (/<[a-z][\s\S]*>/i.test(str)) return str;
-  return linkify(str);
+  if (/<[a-z][\s\S]*>/i.test(str)) {
+    return str; 
+  }
+  return linkify(str); 
 }
 
 function renderTable(headers, rows, pageKey, sectionIndex) {
   let html = '<div class="table-wrap"><table>';
+  
   const colWidths = LOCAL_DATA[pageKey].sections[sectionIndex].colWidths || [];
-  if (headers?.length) {
+
+  if (headers && headers.length) {
     html += '<thead><tr>';
     headers.forEach((h, idx) => {
-      const widthStyle = colWidths[idx] ? `width:${colWidths[idx]};` : '';
-      html += `<th style="${widthStyle}">${escapeHTML(h)}<div class="resizer admin-only" data-page="${pageKey}" data-sec="${sectionIndex}"></div></th>`;
+      const widthStyle = colWidths[idx] ? `width: ${colWidths[idx]};` : '';
+      html += `<th style="${widthStyle}">${escapeHTML(h)}
+                 <div class="resizer admin-only" data-page="${pageKey}" data-sec="${sectionIndex}"></div>
+               </th>`;
     });
-    html += '<th class="admin-only" style="text-align:right;width:70px;">Acc.</th></tr></thead>';
+    html += '<th class="admin-only" style="text-align: right; width: 75px;">Gestión</th></tr></thead>';
   }
   html += '<tbody>';
+  
   for (let i = 0; i < (rows || []).length; i++) {
     const rowObj = rows[i];
+    
     html += '<tr>';
     for (let j = 0; j < (headers || []).length; j++) {
       let cellStr = rowObj[j] !== undefined ? String(rowObj[j]) : '';
       const empty = cellStr === '' || cellStr.trim() === '';
+      
       let finalCell = smartFormat(cellStr);
-      if      (cellStr === 'CHROME')        finalCell = '<span class="pill chrome">CHROME</span>';
-      else if (cellStr === 'EDGE')          finalCell = '<span class="pill edge">EDGE</span>';
-      else if (cellStr === 'EDGE/CHROME')   finalCell = '<span class="pill chrome">EDGE/CHROME</span>';
+      
+      if (cellStr === 'CHROME') finalCell = '<span class="pill chrome">CHROME</span>';
+      else if (cellStr === 'EDGE') finalCell = '<span class="pill edge">EDGE</span>';
+      else if (cellStr === 'EDGE/CHROME') finalCell = '<span class="pill chrome">EDGE/CHROME</span>';
       else if (cellStr === 'EDGE - MODO IE') finalCell = '<span class="pill edge">EDGE - MODO IE</span>';
+      
       html += `<td${empty ? ' class="muted"' : ''}><div class="${/<[a-z][\s\S]*>/i.test(cellStr) ? 'ql-editor' : ''}">${finalCell}</div></td>`;
     }
-    html += `<td class="admin-only" style="text-align:right;vertical-align:middle;white-space:nowrap;">
-      <button class="btn-action-ui" onclick="editarFila('${pageKey}',${sectionIndex},${i})" title="Editar">✏️</button>
-      <button class="btn-action-ui" onclick="eliminarFila('${pageKey}',${sectionIndex},${i})" title="Eliminar">🗑️</button>
-    </td></tr>`;
+
+    html += `
+      <td class="admin-only" style="text-align: right; vertical-align: middle; white-space: nowrap;">
+        <button class="btn-action-ui" onclick="editarFila('${pageKey}', ${sectionIndex}, ${i})" title="Editar Fila Individual">✏️</button>
+        <button class="btn-action-ui" onclick="eliminarFila('${pageKey}', ${sectionIndex}, ${i})" title="Eliminar Fila" style="margin-left: 6px;">🗑️</button>
+      </td>
+    </tr>`;
   }
   html += '</tbody></table></div>';
-  html += `<button class="admin-only btn btn-ghost btn-sm" style="margin-bottom:12px;" onclick="añadirFilaNueva('${pageKey}',${sectionIndex})">+ Añadir Fila</button>`;
+  
+  html += `<button class="admin-only" onclick="añadirFilaNueva('${pageKey}', ${sectionIndex})" style="background: transparent; border: 1px dashed var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 11px; margin-bottom: 14px; font-weight: 500; transition: all 0.2s; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px;">+ Añadir Fila</button>`;
   return html;
 }
 
 function renderCards(cards, pageKey, sectionIndex) {
-  let html = '<div>';
-  for (let i = 0; i < (cards || []).length; i++) {
-    const c = cards[i];
-    html += `<div class="card" style="position:relative;padding-top:22px;">
-      <div class="admin-only" style="position:absolute;top:9px;right:10px;gap:3px;z-index:10;">
-        <button class="btn-action-ui" onclick="editarCard('${pageKey}',${sectionIndex},${i})" title="Editar">✏️</button>
-        <button class="btn-action-ui" onclick="eliminarCard('${pageKey}',${sectionIndex},${i})" title="Eliminar">🗑️</button>
-      </div>
-      <h4>${escapeHTML(c.title)}</h4>
-      <div class="ql-editor">${c.body}</div>
-    </div>`;
+  let html = '<div>'; 
+  
+  function createCardHtml(c, index) {
+    return `
+      <div class="card" style="position: relative; padding-top: 24px;">
+        <div class="admin-only" style="position: absolute; top: 10px; right: 12px; gap: 4px; z-index: 10;">
+          <button class="btn-action-ui" onclick="editarCard('${pageKey}', ${sectionIndex}, ${index})" title="Editar">✏️</button>
+          <button class="btn-action-ui" onclick="eliminarCard('${pageKey}', ${sectionIndex}, ${index})" title="Eliminar">🗑️</button>
+        </div>
+        <h4>${escapeHTML(c.title)}</h4>
+        <div class="ql-editor">${c.body}</div>
+      </div>`;
   }
+
+  for (let i = 0; i < (cards || []).length; i++) {
+    html += createCardHtml(cards[i], i);
+  }
+
   html += '</div>';
-  html += `<button class="admin-only btn btn-ghost btn-sm" style="margin-bottom:12px;" onclick="añadirCardNueva('${pageKey}',${sectionIndex})">+ Añadir Tarjeta</button>`;
+  html += `<button class="admin-only" onclick="añadirCardNueva('${pageKey}', ${sectionIndex})" style="background: transparent; border: 1px dashed var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; font-size: 11px; margin-bottom: 14px; font-weight: 500; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px;">+ Añadir Tarjeta</button>`;
   return html;
 }
 
 window.renderPage = function(key) {
   const page = LOCAL_DATA[key];
   if (!page) return;
-
+  
   document.getElementById('pageTitle').textContent = page.title || key;
-  document.getElementById('pageMeta').textContent = page.meta || '';
+  document.getElementById('pageMeta').textContent  = page.meta || '';
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.target === key));
 
   let html = '';
-
   if (key === 'home') {
-    html += `<div class="home-hero page-enter">
-      <div class="home-hero-top">
-        <div>
-          <h2>Bienvenido al Manual Técnico</h2>
-          <p>Guía de herramientas, procedimientos y recursos UNIR</p>
+    html += `
+      <div class="home-hero">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <h2>Herramientas UNIR</h2>
+            <p>Guía rápida de agente — Responsables del servicio, agentes de atención y soporte, técnicos de formación.</p>
+            <button onclick="exportarTodoAPDF()" style="margin-top: 15px; background: var(--info); color: #fff; padding: 8px 16px; border: none; border-radius: var(--radius); cursor: pointer; font-size: 13px; font-weight: 600; transition: background 0.2s; display: inline-flex; align-items: center; gap: 6px;">
+              📄 Exportar toda la guía a PDF
+            </button>
+          </div>
+          <button class="admin-only" onclick="gestionarMenu()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">⚙️ Administrar Categorías</button>
         </div>
-        <button class="admin-only btn btn-secondary btn-sm" onclick="gestionarMenu()">⚙️ Administrar Categorías</button>
-      </div>
-      <div class="hero-actions">
-        <button class="btn btn-info btn-sm" onclick="exportarTodoAPDF()">📄 Exportar PDF</button>
-      </div>
-    </div>
-    <div class="home-grid page-enter" style="animation-delay:0.05s;">`;
+      </div>`;
+    html += '<div class="home-grid">';
     for (const c of (page.cards || [])) {
       html += `<div class="home-card" data-target="${c.id}"><div class="home-card-icon">${c.icon}</div><h3>${escapeHTML(c.title)}</h3><p>${escapeHTML(c.desc)}</p></div>`;
     }
@@ -1260,534 +928,496 @@ window.renderPage = function(key) {
     return;
   }
 
-  // Breadcrumb for non-home pages
-  html += `<div class="breadcrumb page-enter">
-    <span onclick="currentPage='home';renderPage('home');renderSidebar();">Inicio</span>
-    <span class="breadcrumb-sep">›</span>
-    <span style="color:var(--text-dim);cursor:default;">${escapeHTML(page.title || key)}</span>
-  </div>`;
-
   for (let s = 0; s < (page.sections || []).length; s++) {
     const sec = page.sections[s];
-    html += `<div class="section page-enter" style="animation-delay:${0.04 * s}s;">
+    html += `<div class="section">
       <div class="section-title">
         <span class="section-title-left">${escapeHTML(sec.title)}</span>
-        <div class="admin-only" style="gap:8px;align-items:center;">
-          <button class="btn btn-ghost btn-sm" onclick="editarTablaCompleta('${key}',${s})">📝 Editar Datos</button>
-          <button class="btn btn-ghost btn-sm" onclick="gestionarTabla('${key}',${s})">⚙️</button>
-          <button class="btn btn-ghost btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="eliminarSeccion('${key}',${s})">🗑️</button>
+        
+        <div class="admin-only" style="gap: 12px; align-items: center;">
+          <button onclick="editarTablaCompleta('${key}', ${s})" style="background:transparent; border:none; color:var(--info); cursor:pointer; font-size:13px; opacity:0.8; transition:opacity 0.2s;" title="Edición masiva de todas las celdas (Modo Excel)" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">📝 Editar Datos</button>
+          
+          <button onclick="gestionarTabla('${key}', ${s})" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:13px; opacity:0.6; transition:opacity 0.2s;" title="Modificar estructura de Columnas/Sección" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">⚙️ Configurar</button>
+          
+          <button onclick="eliminarSeccion('${key}', ${s})" style="background:transparent; border:none; color:var(--danger); cursor:pointer; font-size:14px; opacity:0.6; transition:opacity 0.2s;" title="Eliminar Sección Completa" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">🗑️</button>
         </div>
+
       </div>`;
+    
     if (sec.type === 'table') html += renderTable(sec.headers, sec.rows, key, s);
     else if (sec.type === 'cards') html += renderCards(sec.cards, key, s);
+    
     html += '</div>';
   }
+  
+  html += `
+    <div class="admin-only" style="margin-top: 24px; text-align: center;">
+      <button onclick="añadirSeccionNueva('${key}')" style="background: transparent; border: 1px dashed var(--text-muted); color: var(--text-dim); padding: 10px 20px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; width: 100%; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.color='var(--accent)';" onmouseout="this.style.borderColor='var(--text-muted)'; this.style.color='var(--text-dim)';">
+        ➕ Añadir Nueva Sección
+      </button>
+    </div>
+  `;
 
-  html += `<div class="admin-only" style="margin-top:20px;text-align:center;">
-    <button class="btn btn-ghost" style="width:100%;border-style:dashed;font-size:12px;letter-spacing:1px;text-transform:uppercase;" 
-      onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';" 
-      onmouseout="this.style.borderColor='';this.style.color='';"
-      onclick="añadirSeccionNueva('${key}')">➕ Añadir Nueva Sección</button>
-  </div>`;
-
-  if (page.notes?.length) {
-    html += '<div class="notes" style="margin-top:20px;"><span class="label">📌 Notas</span>';
+  if (page.notes && page.notes.length) {
+    html += '<div class="notes" style="margin-top: 20px;"><span class="label">Notas</span>';
     for (const n of page.notes) html += `<p>${linkify(n)}</p>`;
     html += '</div>';
   }
-
+  
   document.getElementById('content').innerHTML = html;
   document.getElementById('main').scrollTop = 0;
-};
-
-/* ============================================================
-   BÚSQUEDA GLOBAL
-   ============================================================ */
-function stripHtml(html) {
-  let tmp = document.createElement("DIV");
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || "";
-}
-
-function buildSearchIndex() {
-  SEARCH_INDEX = [];
-  const activePages = (LOCAL_DATA['home']?.cards || []).map(c => c.id);
-  for (const [key, page] of Object.entries(LOCAL_DATA)) {
-    if (key === 'home' || !activePages.includes(key)) continue;
-    for (const sec of (page.sections || [])) {
-      if (sec.type === 'table' && sec.rows) {
-        for (const row of sec.rows) {
-          const rowArray = Object.values(row);
-          SEARCH_INDEX.push({ page: key, pageTitle: page.title, section: sec.title, type: 'row', headers: sec.headers, row: rowArray, text: rowArray.join(' ').toLowerCase() });
-        }
-      } else if (sec.type === 'cards' && sec.cards) {
-        for (const c of sec.cards) {
-          SEARCH_INDEX.push({ page: key, pageTitle: page.title, section: sec.title, type: 'card', title: c.title, body: c.body, text: (c.title + ' ' + stripHtml(c.body)).toLowerCase() });
-        }
-      }
-    }
-    if (page.notes) {
-      for (const n of page.notes) {
-        SEARCH_INDEX.push({ page: key, pageTitle: page.title, section: 'Notas', type: 'note', body: n, text: n.toLowerCase() });
-      }
-    }
-  }
-}
-
-function renderSearchResults(query) {
-  const term = query.trim().toLowerCase();
-  if (!term) { renderPage(currentPage || 'home'); return; }
-  const results = SEARCH_INDEX.filter(r => r.text.includes(term));
-  document.getElementById('pageTitle').textContent = `Búsqueda: "${query}"`;
-  document.getElementById('pageMeta').textContent = `${results.length} resultado${results.length !== 1 ? 's' : ''}`;
-  if (!results.length) {
-    document.getElementById('content').innerHTML = '<div class="empty">Sin resultados para esa búsqueda.</div>';
-    return;
-  }
-  const groups = {};
-  for (const r of results) {
-    if (!groups[r.page]) groups[r.page] = { pageTitle: r.pageTitle, items: [] };
-    groups[r.page].items.push(r);
-  }
-  let html = '';
-  for (const [pageKey, group] of Object.entries(groups)) {
-    html += `<div class="result-section page-enter">
-      <div class="section-title">
-        <span class="result-tag section-title-left" data-go="${pageKey}">${escapeHTML(group.pageTitle)}</span>
-        <span style="color:var(--text-muted);font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;font-family:inherit;">${group.items.length} coincidencia${group.items.length !== 1 ? 's' : ''}</span>
-      </div>`;
-    const bySection = {};
-    for (const it of group.items) {
-      if (!bySection[it.section]) bySection[it.section] = [];
-      bySection[it.section].push(it);
-    }
-    for (const [secName, items] of Object.entries(bySection)) {
-      if (items.every(i => i.type === 'row')) {
-        const headers = items[0].headers;
-        html += `<h4 style="font-size:11px;color:var(--text-dim);margin:10px 0 6px;font-weight:500;font-family:var(--mono);">${escapeHTML(secName)}</h4>`;
-        html += '<div class="table-wrap"><table>';
-        if (headers?.length) html += '<thead><tr>' + headers.map(h => `<th>${escapeHTML(h)}</th>`).join('') + '</tr></thead>';
-        html += '<tbody>';
-        for (const it of items) {
-          html += '<tr>' + it.row.map(cell => {
-            const empty = cell === '' || cell === null || cell === undefined;
-            const linked = linkify(cell);
-            let finalCell = highlightInLinkedHtml(linked, term);
-            if (cell === 'CHROME') finalCell = '<span class="pill chrome">CHROME</span>';
-            else if (cell === 'EDGE') finalCell = '<span class="pill edge">EDGE</span>';
-            return `<td${empty ? ' class="muted"' : ''}>${finalCell}</td>`;
-          }).join('') + '</tr>';
-        }
-        html += '</tbody></table></div>';
-      } else {
-        html += `<h4 style="font-size:11px;color:var(--text-dim);margin:10px 0 6px;font-weight:500;">${escapeHTML(secName)}</h4>`;
-        for (const it of items) {
-          if (it.type === 'card') html += `<div class="card" style="width:100%;"><h4>${escapeHTML(it.title)}</h4><div class="ql-editor">${highlightInLinkedHtml(it.body, term)}</div></div>`;
-          else if (it.type === 'note') html += `<div class="notes"><p>${highlightInLinkedHtml(linkify(it.body), term)}</p></div>`;
-        }
-      }
-    }
-    html += '</div>';
-  }
-  document.getElementById('content').innerHTML = html;
-  document.querySelectorAll('.result-tag').forEach(t => {
-    t.addEventListener('click', () => {
-      document.getElementById('searchInput').value = '';
-      document.getElementById('searchClear').classList.remove('visible');
-      currentPage = t.dataset.go;
-      renderPage(currentPage);
-      renderSidebar();
-    });
-  });
-}
-
-function highlightInLinkedHtml(html, term) {
-  if (!term) return html;
-  try {
-    const re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-    return html.split(/(<[^>]+>)/).map(part => part.startsWith('<') ? part : part.replace(re, '<mark>$1</mark>')).join('');
-  } catch(e) { return html; }
 }
 
 /* ============================================================
-   UTILIDADES
-   ============================================================ */
-function linkify(text) {
-  if (text === null || text === undefined) return '';
-  let html = escapeHTML(String(text));
-  html = html.replace(/mailto:([\w._%+-]+@[\w.-]+\.[A-Za-z]{2,})/g, '<a class="mail" href="mailto:$1">$1</a>');
-  html = html.replace(/(?<![\w@.:/])([\w._%+-]+@[\w.-]+\.[A-Za-z]{2,})(?![\w@])/g, '<a class="mail" href="mailto:$1">$1</a>');
-  html = html.replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-  html = html.replace(/(?<!\d)(\b[69]\d{8}\b)(?!\d)/g, '<a class="tel" href="tel:$1">$1</a>');
-  return html;
-}
-
-function escapeHTML(str) {
-  return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-let currentPage = 'home';
-const searchInput = document.getElementById('searchInput');
-const searchClear = document.getElementById('searchClear');
-let searchTimer;
-
-searchInput.addEventListener('input', e => {
-  const q = e.target.value;
-  searchClear.classList.toggle('visible', q.length > 0);
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    if (q.trim()) renderSearchResults(q);
-    else renderPage(currentPage);
-  }, 140);
-});
-
-searchClear.addEventListener('click', () => {
-  searchInput.value = '';
-  searchClear.classList.remove('visible');
-  renderPage(currentPage);
-  searchInput.focus();
-});
-
-document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-    e.preventDefault();
-    searchInput.focus();
-    searchInput.select();
-  }
-  if (e.key === 'Escape') {
-    if (document.activeElement === searchInput) {
-      searchInput.value = '';
-      searchClear.classList.remove('visible');
-      renderPage(currentPage);
-      searchInput.blur();
-    }
-    if (document.getElementById('editModal').style.display !== 'none') cerrarModal();
-    if (document.getElementById('loginModal').style.display !== 'none') {
-      document.getElementById('loginModal').style.display = 'none';
-    }
-  }
-});
-
-/* ============================================================
-   REDIMENSIÓN DE COLUMNAS
-   ============================================================ */
-let isResizing = false, currentResizer = null;
-let startX, startWidth, currentTh, currentTable;
-
-document.addEventListener('mousedown', e => {
-  if (e.target.classList.contains('resizer')) {
-    isResizing = true;
-    currentResizer = e.target;
-    currentTh = currentResizer.parentElement;
-    currentTable = currentTh.closest('table');
-    startX = e.pageX;
-    startWidth = currentTh.offsetWidth;
-    currentResizer.classList.add('resizing');
-    e.preventDefault();
-  }
-});
-document.addEventListener('mousemove', e => {
-  if (isResizing && currentTh) {
-    const newWidthPx = startWidth + (e.pageX - startX);
-    const newWidthPct = (newWidthPx / currentTable.offsetWidth) * 100;
-    currentTh.style.width = newWidthPct + '%';
-  }
-});
-document.addEventListener('mouseup', async e => {
-  if (isResizing && currentResizer) {
-    isResizing = false;
-    currentResizer.classList.remove('resizing');
-    const pageKey = currentResizer.dataset.page;
-    const secIdx = currentResizer.dataset.sec;
-    const ths = currentTable.querySelectorAll('th:not(.admin-only)');
-    const widths = Array.from(ths).map(t => (t.offsetWidth / currentTable.offsetWidth * 100).toFixed(2) + '%');
-    if (!LOCAL_DATA[pageKey].sections[secIdx].colWidths) LOCAL_DATA[pageKey].sections[secIdx].colWidths = [];
-    LOCAL_DATA[pageKey].sections[secIdx].colWidths = widths;
-    try {
-      await setDoc(doc(db, "guias_ipc", pageKey), LOCAL_DATA[pageKey]);
-    } catch(err) { console.error("Error guardando anchos:", err); }
-    currentResizer = null; currentTh = null; currentTable = null;
-  }
-});
-
-/* ============================================================
-   MODALES ADMINISTRATIVOS
+   LÓGICA ADMINISTRATIVA (MODALES Y REDIMENSIÓN)
    ============================================================ */
 const modal = document.getElementById('editModal');
 const modalContentBox = document.getElementById('modalContentBox');
 
-function abrirModal(mode = 'normal') {
-  modal.style.display = 'flex';
+function abrirModal(mode = 'normal') { 
+  modal.style.display = 'flex'; 
+  
   if (mode === 'fullscreen') {
     modalContentBox.style.width = '96vw';
-    modalContentBox.style.height = '92vh';
+    modalContentBox.style.height = '96vh';
     modalContentBox.style.maxWidth = '1600px';
-    document.getElementById('modalBody').style.maxHeight = 'calc(92vh - 130px)';
-    document.getElementById('modalBody').style.height = 'calc(92vh - 130px)';
+    document.getElementById('modalBody').style.maxHeight = 'calc(96vh - 140px)';
+    document.getElementById('modalBody').style.height = 'calc(96vh - 140px)';
   } else if (mode === 'bulk') {
     modalContentBox.style.width = '95vw';
     modalContentBox.style.height = 'auto';
     modalContentBox.style.maxWidth = '1400px';
-    document.getElementById('modalBody').style.maxHeight = '72vh';
+    document.getElementById('modalBody').style.maxHeight = '75vh';
     document.getElementById('modalBody').style.height = 'auto';
   } else {
     modalContentBox.style.width = '600px';
     modalContentBox.style.height = 'auto';
     modalContentBox.style.maxWidth = '95%';
-    document.getElementById('modalBody').style.maxHeight = '62vh';
+    document.getElementById('modalBody').style.maxHeight = '65vh';
     document.getElementById('modalBody').style.height = 'auto';
   }
 }
-function cerrarModal() {
-  modal.style.display = 'none';
+
+function cerrarModal() { 
+  modal.style.display = 'none'; 
   window.currentQuill = null;
   window.currentTableQuills = {};
 }
 document.getElementById('closeModalBtn').addEventListener('click', cerrarModal);
-document.getElementById('cancelModalBtn').addEventListener('click', cerrarModal);
 
-// ---- SECCIONES ----
+// ---- 1. CREACIÓN / ELIMINACIÓN DE SECCIONES DESDE CERO ----
 window.añadirSeccionNueva = function(pageKey) {
-  currentEditPage = pageKey; currentEditType = 'new_section';
+  currentEditPage = pageKey;
+  currentEditType = 'new_section';
   document.getElementById('modalTitle').textContent = 'Añadir Nueva Sección';
   document.getElementById('modalBody').innerHTML = `
-    <div class="modal-field"><label>Título de la Sección</label><input type="text" id="newSectionTitle" placeholder="Ej: Nueva Normativa"></div>
-    <div class="modal-field"><label>Tipo de Contenido</label>
+    <div class="modal-field">
+      <label>Título de la Sección</label>
+      <input type="text" id="newSectionTitle" placeholder="Ej: Nueva Normativa o Contactos">
+    </div>
+    <div class="modal-field" style="margin-top: 10px;">
+      <label>Tipo de Contenido</label>
       <select id="newSectionType">
         <option value="table">Tabla de Datos (Filas y Columnas)</option>
-        <option value="cards">Tarjetas (Plantillas / Textos)</option>
+        <option value="cards">Tarjetas (Plantillas / Textos Largos)</option>
       </select>
-    </div>`;
+    </div>
+  `;
   abrirModal('normal');
-};
+}
 
 window.eliminarSeccion = async function(pageKey, sectionIndex) {
-  const ok = await confirmDialog('Eliminar sección', '¿Eliminar TODA esta sección y sus datos? Esta acción no se puede deshacer.');
-  if (!ok) return;
+  if (!confirm("⚠️ ATENCIÓN: ¿Estás seguro de que deseas borrar TODA esta sección y todos los datos que contiene? Esta acción no se puede deshacer.")) return;
   LOCAL_DATA[pageKey].sections.splice(sectionIndex, 1);
   await guardarEnFirebase(pageKey);
-  toast('Sección eliminada', 'success');
-};
+}
 
-// ---- EDICIÓN MASIVA ----
+// ---- 2. EDICIÓN MASIVA (MODO EXCEL) ----
 window.editarTablaCompleta = function(pageKey, sectionIndex) {
-  currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditType = 'bulk_table';
+  currentEditPage = pageKey;
+  currentEditSection = sectionIndex;
+  currentEditType = 'bulk_table';
+
   const sec = LOCAL_DATA[pageKey].sections[sectionIndex];
-  const headers = sec.headers || [], rows = sec.rows || [];
+  const headers = sec.headers || [];
+  const rows = sec.rows || [];
+
   document.getElementById('modalTitle').textContent = `Edición Masiva — ${sec.title}`;
-  let html = `<div style="overflow-x:auto;max-height:55vh;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;">
-    <table style="width:100%;border-collapse:collapse;min-width:max-content;" id="bulkEditTable">
-      <thead style="background:var(--bg-card);position:sticky;top:0;z-index:2;">
-        <tr><th style="width:30px;padding:8px;"></th>
-        ${headers.map(h => `<th style="padding:8px;color:var(--accent);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border);text-align:left;font-family:var(--mono,monospace);">${escapeHTML(h)}</th>`).join('')}
-        <th style="width:40px;padding:8px;border-bottom:1px solid var(--border);"></th></tr>
+  
+  let html = `<div style="overflow-x:auto; max-height: 55vh; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom:10px;">
+    <table style="width:100%; border-collapse: collapse; min-width: max-content;" id="bulkEditTable">
+      <thead style="background: var(--bg-card); position: sticky; top: 0; z-index: 2;">
+        <tr>
+          <th style="width: 30px; padding: 8px;"></th>
+          ${headers.map(h => `<th style="padding: 8px; color: var(--accent); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); text-align: left;">${escapeHTML(h)}</th>`).join('')}
+          <th style="width: 40px; padding: 8px; border-bottom: 1px solid var(--border);"></th>
+        </tr>
       </thead>
-      <tbody id="bulkEditTbody">`;
+      <tbody id="bulkEditTbody">
+  `;
+
   rows.forEach((rowObj, rIdx) => {
-    html += `<tr class="bulk-row"><td style="padding:4px;text-align:center;color:var(--text-muted);font-size:10px;border-bottom:1px solid var(--border-soft);">${rIdx + 1}</td>`;
+    html += `<tr class="bulk-row">
+      <td style="padding: 4px; text-align:center; color: var(--text-muted); font-size: 10px; border-bottom: 1px solid var(--border-soft);">${rIdx + 1}</td>
+    `;
     headers.forEach((_, cIdx) => {
       const val = rowObj[cIdx] !== undefined ? rowObj[cIdx] : '';
-      html += `<td style="padding:0;border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);"><div class="bulk-input" contenteditable="true" data-col="${cIdx}">${val}</div></td>`;
+      html += `<td style="padding: 0; border-bottom: 1px solid var(--border-soft); border-right: 1px solid var(--border-soft);">
+        <div class="bulk-input" contenteditable="true" data-col="${cIdx}">${val}</div>
+      </td>`;
     });
-    html += `<td style="padding:4px;text-align:center;border-bottom:1px solid var(--border-soft);"><button onclick="this.closest('tr').remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;" title="Eliminar">🗑️</button></td></tr>`;
+    html += `<td style="padding: 4px; text-align:center; border-bottom: 1px solid var(--border-soft);"><button onclick="this.closest('tr').remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer;" title="Eliminar Fila">🗑️</button></td></tr>`;
   });
+
   html += `</tbody></table></div>
-    <button onclick="añadirFilaBulk()" class="btn btn-ghost btn-sm">+ Añadir Fila</button>
-    <div style="margin-top:8px;font-size:11px;color:var(--info);">💡 Los estilos (negritas, enlaces) creados individualmente se conservan.</div>`;
+  <button onclick="añadirFilaBulk()" style="background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:6px 12px; border-radius:var(--radius); cursor:pointer; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">+ Añadir Fila</button>
+  <div style="margin-top:10px; font-size: 11px; color: var(--info);">💡 Tip: La cuadrícula conserva los estilos (negritas, enlaces) que creaste individualmente.</div>
+  `;
+
   document.getElementById('modalBody').innerHTML = html;
   abrirModal('bulk');
-};
+}
 
 window.añadirFilaBulk = function() {
   const sec = LOCAL_DATA[currentEditPage].sections[currentEditSection];
   const headers = sec.headers || [];
   const tbody = document.getElementById('bulkEditTbody');
+  
   const tr = document.createElement('tr');
   tr.className = 'bulk-row';
-  let html = `<td style="padding:4px;text-align:center;color:var(--success);font-size:12px;border-bottom:1px solid var(--border-soft);">✨</td>`;
+  let html = `<td style="padding: 4px; text-align:center; color: var(--success); font-size: 12px; border-bottom: 1px solid var(--border-soft);">✨</td>`;
   headers.forEach((_, cIdx) => {
-    html += `<td style="padding:0;border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);"><div class="bulk-input" contenteditable="true" data-col="${cIdx}"></div></td>`;
+    html += `<td style="padding: 0; border-bottom: 1px solid var(--border-soft); border-right: 1px solid var(--border-soft);">
+        <div class="bulk-input" contenteditable="true" data-col="${cIdx}"></div>
+      </td>`;
   });
-  html += `<td style="padding:4px;text-align:center;border-bottom:1px solid var(--border-soft);"><button onclick="this.closest('tr').remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;">🗑️</button></td>`;
+  html += `<td style="padding: 4px; text-align:center; border-bottom: 1px solid var(--border-soft);"><button onclick="this.closest('tr').remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer;" title="Eliminar Fila">🗑️</button></td>`;
   tr.innerHTML = html;
   tbody.appendChild(tr);
-};
+}
 
-// ---- CONFIGURAR TABLA ----
+// ---- 3. CONFIGURACIÓN DE TABLAS (CABECERAS / COLUMNAS) ----
 window.gestionarTabla = function(pageKey, sectionIndex) {
-  currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditType = 'table_config';
+  currentEditPage = pageKey;
+  currentEditSection = sectionIndex;
+  currentEditType = 'table_config';
+
   const sec = LOCAL_DATA[pageKey].sections[sectionIndex];
-  document.getElementById('modalTitle').textContent = 'Configurar Estructura';
-  let html = `<div class="modal-field" style="margin-bottom:16px;"><label>Título de la Sección</label><input type="text" id="sectionTitleInput" value="${escapeHTML(sec.title)}"></div>`;
+  document.getElementById('modalTitle').textContent = `Configurar Estructura`;
+
+  let html = `
+    <div class="modal-field" style="margin-bottom:20px;">
+      <label>Título de la Sección</label>
+      <input type="text" id="sectionTitleInput" value="${escapeHTML(sec.title)}">
+    </div>`;
+
   if (sec.type === 'table') {
-    html += `<div class="modal-field"><label>Columnas (Cabeceras)</label><div id="columnList" style="display:flex;flex-direction:column;gap:8px;">`;
+    html += `
+      <div class="modal-field">
+        <label>Columnas (Cabeceras)</label>
+        <div id="columnList" style="display:flex; flex-direction:column; gap:8px;">
+    `;
+
     (sec.headers || []).forEach((h, idx) => {
-      html += `<div class="col-edit-row" data-original-index="${idx}" style="display:flex;gap:8px;align-items:center;">
-        <span style="color:var(--text-muted);font-size:11px;width:20px;font-family:monospace;">#${idx+1}</span>
-        <input type="text" class="col-name" value="${escapeHTML(h)}" style="flex:1;">
-        <button onclick="this.parentElement.remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:16px;">🗑️</button>
-      </div>`;
+      html += `
+        <div class="col-edit-row" data-original-index="${idx}" style="display:flex; gap:8px; align-items:center;">
+          <span style="color:var(--text-muted); font-size:12px; width:20px;">#${idx+1}</span>
+          <input type="text" class="col-name" value="${escapeHTML(h)}" style="flex:1;">
+          <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px;" title="Eliminar Columna">🗑️</button>
+        </div>`;
     });
-    html += `</div><button onclick="añadirColumnaTabla()" class="btn btn-ghost btn-sm" style="margin-top:10px;">+ Añadir Columna</button></div>`;
+
+    html += `
+        </div>
+        <button onclick="añadirColumnaTabla()" style="margin-top:14px; background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:6px 12px; border-radius:var(--radius); cursor:pointer; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">+ Añadir Columna</button>
+      </div>`;
   }
+
   document.getElementById('modalBody').innerHTML = html;
   abrirModal('normal');
-};
+}
 
 window.añadirColumnaTabla = function() {
   const div = document.createElement('div');
   div.className = 'col-edit-row';
-  div.style.cssText = 'display:flex;gap:8px;align-items:center;animation:fadeIn 0.2s ease;';
-  div.innerHTML = `<span style="color:var(--success);font-size:12px;width:20px;">✨</span><input type="text" class="col-name" placeholder="Nueva Columna" style="flex:1;"><button onclick="this.parentElement.remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:16px;">🗑️</button>`;
+  div.style.cssText = 'display:flex; gap:8px; align-items:center; animation: fadeIn 0.2s ease;';
+  div.innerHTML = `
+    <span style="color:var(--success); font-size:12px; width:20px;">✨</span>
+    <input type="text" class="col-name" placeholder="Nueva Columna" style="flex:1;">
+    <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px;">🗑️</button>
+  `;
   document.getElementById('columnList').appendChild(div);
-};
+}
 
-// ---- FILAS ----
+// ---- OPERACIONES SOBRE FILAS INDIVIDUALES (AQUÍ APLICAMOS QUILL + COMPRESIÓN) ----
 window.editarFila = function(pageKey, sectionIndex, rowIndex) {
-  currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditIndex = rowIndex; currentEditType = 'row';
+  currentEditPage = pageKey;
+  currentEditSection = sectionIndex;
+  currentEditIndex = rowIndex;
+  currentEditType = 'row';
+
   const section = LOCAL_DATA[pageKey].sections[sectionIndex];
-  const headers = section.headers || [], rowObj = section.rows[rowIndex] || {};
-  document.getElementById('modalTitle').textContent = 'Editar Fila — Herramientas Avanzadas';
+  const headers = section.headers || [];
+  const rowObj = section.rows[rowIndex] || {};
+  
+  document.getElementById('modalTitle').textContent = `Editar Fila con Herramientas Avanzadas`;
+  
   let bodyHtml = '';
   headers.forEach((header, idx) => {
-    bodyHtml += `<div class="modal-field" style="margin-bottom:14px;"><label>${escapeHTML(header)}</label><div id="quill-col-${idx}" class="quill-table-editor"></div></div>`;
+    bodyHtml += `
+      <div class="modal-field" style="margin-bottom: 16px;">
+        <label>${escapeHTML(header)}</label>
+        <div id="quill-col-${idx}" class="quill-table-editor"></div>
+      </div>`;
   });
+  
   document.getElementById('modalBody').innerHTML = bodyHtml;
-  abrirModal('fullscreen');
+  abrirModal('fullscreen'); 
+  
   setTimeout(() => {
     window.currentTableQuills = {};
-    headers.forEach((_, idx) => {
-      const q = new Quill(`#quill-col-${idx}`, { theme: 'snow', modules: { toolbar: [['bold','italic','underline','strike'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],['link','clean']] } });
+    headers.forEach((header, idx) => {
+      const q = new Quill(`#quill-col-${idx}`, {
+        theme: 'snow',
+        modules: {
+          imageCompress: {
+            quality: 0.7, 
+            maxWidth: 800, 
+            maxHeight: 800,
+            imageType: 'image/jpeg',
+            debug: false
+          },
+          toolbar: [
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'color': [] }, { 'background': [] }],
+            ['image', 'link', 'clean']
+          ]
+        }
+      });
       q.clipboard.dangerouslyPasteHTML(rowObj[idx] !== undefined ? String(rowObj[idx]) : '');
       window.currentTableQuills[idx] = q;
     });
   }, 50);
-};
+}
 
 window.añadirFilaNueva = function(pageKey, sectionIndex) {
-  currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditType = 'new_row';
-  const section = LOCAL_DATA[pageKey].sections[sectionIndex], headers = section.headers || [];
-  document.getElementById('modalTitle').textContent = 'Añadir Fila — Herramientas Avanzadas';
+  currentEditPage = pageKey;
+  currentEditSection = sectionIndex;
+  currentEditType = 'new_row';
+
+  const section = LOCAL_DATA[pageKey].sections[sectionIndex];
+  const headers = section.headers || [];
+  
+  document.getElementById('modalTitle').textContent = `Añadir Fila con Herramientas Avanzadas`;
+  
   let bodyHtml = '';
   headers.forEach((header, idx) => {
-    bodyHtml += `<div class="modal-field" style="margin-bottom:14px;"><label>${escapeHTML(header)}</label><div id="quill-col-${idx}" class="quill-table-editor"></div></div>`;
+    bodyHtml += `
+      <div class="modal-field" style="margin-bottom: 16px;">
+        <label>${escapeHTML(header)}</label>
+        <div id="quill-col-${idx}" class="quill-table-editor"></div>
+      </div>`;
   });
+  
   document.getElementById('modalBody').innerHTML = bodyHtml;
   abrirModal('fullscreen');
+  
   setTimeout(() => {
     window.currentTableQuills = {};
-    headers.forEach((_, idx) => {
-      window.currentTableQuills[idx] = new Quill(`#quill-col-${idx}`, { theme: 'snow', modules: { toolbar: [['bold','italic','underline','strike'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],['link','clean']] } });
+    headers.forEach((header, idx) => {
+      const q = new Quill(`#quill-col-${idx}`, {
+        theme: 'snow',
+        modules: {
+          imageCompress: {
+            quality: 0.7, 
+            maxWidth: 800, 
+            maxHeight: 800,
+            imageType: 'image/jpeg',
+            debug: false
+          },
+          toolbar: [
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'color': [] }, { 'background': [] }],
+            ['image', 'link', 'clean']
+          ]
+        }
+      });
+      window.currentTableQuills[idx] = q;
     });
   }, 50);
-};
+}
 
 window.eliminarFila = async function(pageKey, sectionIndex, rowIndex) {
-  const ok = await confirmDialog('Eliminar fila', '¿Eliminar esta fila de forma permanente?');
-  if (!ok) return;
+  if (!confirm("¿Eliminar esta fila de forma permanente?")) return;
   LOCAL_DATA[pageKey].sections[sectionIndex].rows.splice(rowIndex, 1);
   await guardarEnFirebase(pageKey);
-  toast('Fila eliminada', 'success');
-};
+}
 
-// ---- CARDS ----
+// ---- OPERACIONES SOBRE TARJETAS (CARDS CON QUILL + COMPRESIÓN) ----
 window.editarCard = function(pageKey, sectionIndex, cardIndex) {
-  currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditIndex = cardIndex; currentEditType = 'card';
+  currentEditPage = pageKey;
+  currentEditSection = sectionIndex;
+  currentEditIndex = cardIndex;
+  currentEditType = 'card';
+
   const card = LOCAL_DATA[pageKey].sections[sectionIndex].cards[cardIndex];
   document.getElementById('modalTitle').textContent = 'Editar Tarjeta / Plantilla';
+  
   document.getElementById('modalBody').innerHTML = `
-    <div class="modal-field" style="margin-bottom:10px;"><label>Título de la Tarjeta</label><input type="text" id="cardTitleInput" value="${escapeHTML(card.title)}"></div>
-    <div class="modal-field" style="flex:1;display:flex;flex-direction:column;min-height:0;"><label>Cuerpo del Mensaje</label><div id="cardBodyEditor" class="quill-card-editor"></div></div>`;
+    <div class="modal-field" style="margin-bottom: 10px;">
+      <label>Título de la Tarjeta</label>
+      <input type="text" id="cardTitleInput" value="${escapeHTML(card.title)}">
+    </div>
+    <div class="modal-field" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <label>Cuerpo del Mensaje (Editor Avanzado)</label>
+      <div id="cardBodyEditor" class="quill-card-editor"></div>
+    </div>`;
+  
   abrirModal('fullscreen');
+  
   setTimeout(() => {
-    window.currentQuill = new Quill('#cardBodyEditor', { theme: 'snow', modules: { toolbar: [['bold','italic','underline','strike'],['blockquote','code-block'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],[{'align':[]}],['link'],['clean']] } });
+    window.currentQuill = new Quill('#cardBodyEditor', {
+      theme: 'snow',
+      modules: {
+        imageCompress: {
+          quality: 0.7, 
+          maxWidth: 800, 
+          maxHeight: 800,
+          imageType: 'image/jpeg',
+          debug: false
+        },
+        toolbar: [
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'code-block'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'align': [] }],
+          ['image', 'link', 'clean']
+        ]
+      }
+    });
     window.currentQuill.clipboard.dangerouslyPasteHTML(card.body || '');
   }, 50);
-};
+}
 
 window.añadirCardNueva = function(pageKey, sectionIndex) {
-  currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditType = 'new_card';
-  document.getElementById('modalTitle').textContent = 'Añadir Nueva Tarjeta';
+  currentEditPage = pageKey;
+  currentEditSection = sectionIndex;
+  currentEditType = 'new_card';
+
+  document.getElementById('modalTitle').textContent = 'Añadir Nueva Tarjeta / Plantilla';
+  
   document.getElementById('modalBody').innerHTML = `
-    <div class="modal-field" style="margin-bottom:10px;"><label>Título de la Tarjeta</label><input type="text" id="cardTitleInput" placeholder="Ej: OUTLOOK WEB"></div>
-    <div class="modal-field" style="flex:1;display:flex;flex-direction:column;min-height:0;"><label>Cuerpo del Mensaje</label><div id="cardBodyEditor" class="quill-card-editor"></div></div>`;
+    <div class="modal-field" style="margin-bottom: 10px;">
+      <label>Título de la Tarjeta</label>
+      <input type="text" id="cardTitleInput" placeholder="Ej: OUTLOOK WEB">
+    </div>
+    <div class="modal-field" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <label>Cuerpo del Mensaje (Editor Avanzado)</label>
+      <div id="cardBodyEditor" class="quill-card-editor"></div>
+    </div>`;
+  
   abrirModal('fullscreen');
+  
   setTimeout(() => {
-    window.currentQuill = new Quill('#cardBodyEditor', { theme: 'snow', placeholder: 'Escribe el contenido aquí...', modules: { toolbar: [['bold','italic','underline','strike'],['blockquote','code-block'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],[{'align':[]}],['link'],['clean']] } });
+    window.currentQuill = new Quill('#cardBodyEditor', {
+      theme: 'snow',
+      placeholder: 'Escribe el contenido o plantilla de la tarjeta aquí...',
+      modules: {
+        imageCompress: {
+          quality: 0.7, 
+          maxWidth: 800, 
+          maxHeight: 800,
+          imageType: 'image/jpeg',
+          debug: false
+        },
+        toolbar: [
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'code-block'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'align': [] }],
+          ['image', 'link', 'clean']
+        ]
+      }
+    });
   }, 50);
-};
+}
 
 window.eliminarCard = async function(pageKey, sectionIndex, cardIndex) {
-  const ok = await confirmDialog('Eliminar tarjeta', '¿Eliminar esta tarjeta de forma permanente?');
-  if (!ok) return;
+  if (!confirm("¿Eliminar esta tarjeta de forma permanente?")) return;
   LOCAL_DATA[pageKey].sections[sectionIndex].cards.splice(cardIndex, 1);
   await guardarEnFirebase(pageKey);
-  toast('Tarjeta eliminada', 'success');
-};
+}
 
-// ---- MENÚ ----
+// ---- OPERACIONES DE MENÚ LATERAL (CATEGORÍAS) ----
 window.gestionarMenu = function() {
   currentEditType = 'menu_manager';
   document.getElementById('modalTitle').textContent = 'Administrar Menú Lateral';
-  let html = '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Añade, edita, elimina o reordena las categorías usando las flechas.</div>';
+
+  let html = '<div style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height: 1.5;">Añade, edita, elimina o reordena las categorías principales usando las flechas.</div>';
   const cards = LOCAL_DATA['home'].cards || [];
-  html += '<div id="menuEditorList" style="display:flex;flex-direction:column;gap:8px;">';
-  cards.forEach(c => {
-    html += `<div class="menu-edit-row" style="display:flex;gap:8px;align-items:center;background:var(--bg-card);padding:8px;border-radius:var(--radius);border:1px solid var(--border);">
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <button onclick="moverFilaMenu(this,-1)" style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▲</button>
-        <button onclick="moverFilaMenu(this,1)"  style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▼</button>
+
+  html += '<div id="menuEditorList" style="display:flex; flex-direction:column; gap:10px;">';
+  
+  cards.forEach((c) => {
+    html += `
+      <div class="menu-edit-row" style="display:flex; gap:8px; align-items:center; background:var(--bg-card); padding:8px; border-radius:var(--radius); border:1px solid var(--border);">
+        <div style="display:flex; flex-direction:column; gap:2px; margin-right:4px;">
+          <button onclick="moverFilaMenu(this, -1)" style="background:transparent; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" title="Subir">⬆️</button>
+          <button onclick="moverFilaMenu(this, 1)" style="background:transparent; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" title="Bajar">⬇️</button>
+        </div>
+        <input type="text" class="menu-icon" value="${escapeHTML(c.icon)}" style="width:45px; text-align:center; padding: 6px;" title="Icono (Emoji)">
+        <input type="text" class="menu-id" value="${escapeHTML(c.id)}" style="width:100px; padding: 6px; background: rgba(0,0,0,0.2); color: var(--text-muted);" title="ID Interno (No editable)" disabled>
+        <input type="text" class="menu-title" value="${escapeHTML(c.title)}" style="flex:1; padding: 6px;" title="Título">
+        <input type="text" class="menu-desc" value="${escapeHTML(c.desc)}" style="flex:1.5; padding: 6px;" title="Descripción">
+        <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px; margin-left:4px;" title="Eliminar Categoría">🗑️</button>
       </div>
-      <input type="text" class="menu-icon"  value="${escapeHTML(c.icon)}"  style="width:42px;text-align:center;padding:5px;" title="Icono (Emoji)">
-      <input type="text" class="menu-id"    value="${escapeHTML(c.id)}"    style="width:95px;padding:5px;background:rgba(0,0,0,0.2);color:var(--text-muted);" title="ID Interno" disabled>
-      <input type="text" class="menu-title" value="${escapeHTML(c.title)}" style="flex:1;padding:5px;" title="Título">
-      <input type="text" class="menu-desc"  value="${escapeHTML(c.desc)}"  style="flex:1.5;padding:5px;" title="Descripción">
-      <button onclick="this.parentElement.remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:15px;" title="Eliminar">🗑️</button>
-    </div>`;
+    `;
   });
   html += '</div>';
-  html += `<button onclick="añadirFilaMenu()" class="btn btn-ghost btn-sm" style="margin-top:12px;border-style:dashed;">+ Nueva Categoría</button>`;
+
+  html += `<button onclick="añadirFilaMenu()" style="margin-top:14px; background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:6px 12px; border-radius:var(--radius); cursor:pointer; font-size:11px; text-transform: uppercase; letter-spacing: 0.5px;">+ Nueva Categoría</button>`;
+
   document.getElementById('modalBody').innerHTML = html;
   abrirModal('normal');
-};
+}
 
 window.añadirFilaMenu = function() {
   const container = document.getElementById('menuEditorList');
   const div = document.createElement('div');
   div.className = 'menu-edit-row';
-  div.style.cssText = 'display:flex;gap:8px;align-items:center;background:var(--bg-card);padding:8px;border-radius:var(--radius);border:1px solid var(--border);';
+  div.style.cssText = 'display:flex; gap:8px; align-items:center; background:var(--bg-card); padding:8px; border-radius:var(--radius); border:1px solid var(--border);';
+  
   div.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:2px;">
-      <button onclick="moverFilaMenu(this,-1)" style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▲</button>
-      <button onclick="moverFilaMenu(this,1)"  style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▼</button>
+    <div style="display:flex; flex-direction:column; gap:2px; margin-right:4px;">
+      <button onclick="moverFilaMenu(this, -1)" style="background:transparent; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" title="Subir">⬆️</button>
+      <button onclick="moverFilaMenu(this, 1)" style="background:transparent; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" title="Bajar">⬇️</button>
     </div>
-    <input type="text" class="menu-icon"  placeholder="📁" style="width:42px;text-align:center;padding:5px;">
-    <input type="text" class="menu-id"    placeholder="id_nuevo" style="width:95px;padding:5px;border-color:var(--info);">
-    <input type="text" class="menu-title" placeholder="Título" style="flex:1;padding:5px;">
-    <input type="text" class="menu-desc"  placeholder="Descripción..." style="flex:1.5;padding:5px;">
-    <button onclick="this.parentElement.remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:15px;">🗑️</button>`;
+    <input type="text" class="menu-icon" placeholder="📁" style="width:45px; text-align:center; padding: 6px;" title="Icono">
+    <input type="text" class="menu-id" placeholder="id_nuevo" style="width:100px; padding: 6px; border-color: var(--info);" title="Escribe un ID sin espacios">
+    <input type="text" class="menu-title" placeholder="Título visible" style="flex:1; padding: 6px;">
+    <input type="text" class="menu-desc" placeholder="Descripción breve..." style="flex:1.5; padding: 6px;">
+    <button onclick="this.parentElement.remove()" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:16px; margin-left:4px;">🗑️</button>
+  `;
   container.appendChild(div);
-};
+}
 
 window.moverFilaMenu = function(btn, dir) {
   const row = btn.closest('.menu-edit-row');
-  if (dir === -1 && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
-  else if (dir === 1 && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
-};
-
-/* ============================================================
-   GUARDADO MAESTRO
-   ============================================================ */
-async function guardarEnFirebase(pageKey) {
-  const docRef = doc(db, "guias_ipc", pageKey);
-  await setDoc(docRef, LOCAL_DATA[pageKey]);
-  buildSearchIndex();
-  renderPage(pageKey);
+  if (dir === -1 && row.previousElementSibling) {
+    row.parentNode.insertBefore(row, row.previousElementSibling);
+  } else if (dir === 1 && row.nextElementSibling) {
+    row.parentNode.insertBefore(row.nextElementSibling, row);
+  }
 }
 
+// ---- GUARDADO MAESTRO EN CLOUD FIRESTORE ----
 document.getElementById('saveModalBtn').addEventListener('click', async () => {
   const btn = document.getElementById('saveModalBtn');
-  btn.textContent = 'Guardando...';
+  btn.textContent = 'Guardando... ⏳';
   btn.disabled = true;
 
   try {
@@ -1795,8 +1425,8 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       if (!LOCAL_DATA[currentEditPage].sections) LOCAL_DATA[currentEditPage].sections = [];
       const title = document.getElementById('newSectionTitle').value || 'Nueva Sección';
       const type = document.getElementById('newSectionType').value;
-      if (type === 'table') LOCAL_DATA[currentEditPage].sections.push({ title, type: 'table', headers: ['Columna 1', 'Columna 2'], rows: [] });
-      else LOCAL_DATA[currentEditPage].sections.push({ title, type: 'cards', cards: [] });
+      if (type === 'table') LOCAL_DATA[currentEditPage].sections.push({ title: title, type: 'table', headers: ['Columna 1', 'Columna 2'], rows: [] });
+      else LOCAL_DATA[currentEditPage].sections.push({ title: title, type: 'cards', cards: [] });
       await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'bulk_table') {
@@ -1804,7 +1434,8 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       const newRows = [];
       trs.forEach(tr => {
         const rowObj = {};
-        tr.querySelectorAll('.bulk-input').forEach(inp => { rowObj[inp.dataset.col] = inp.innerHTML; });
+        const inputs = tr.querySelectorAll('.bulk-input');
+        inputs.forEach(inp => { rowObj[inp.dataset.col] = inp.innerHTML; });
         newRows.push(rowObj);
       });
       LOCAL_DATA[currentEditPage].sections[currentEditSection].rows = newRows;
@@ -1812,16 +1443,18 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
 
     } else if (currentEditType === 'row') {
       const rowObj = {};
-      (LOCAL_DATA[currentEditPage].sections[currentEditSection].headers || []).forEach((_, idx) => {
-        rowObj[idx] = window.currentTableQuills[idx].root.innerHTML;
+      const headers = LOCAL_DATA[currentEditPage].sections[currentEditSection].headers || [];
+      headers.forEach((_, idx) => { 
+        rowObj[idx] = window.currentTableQuills[idx].root.innerHTML; 
       });
       LOCAL_DATA[currentEditPage].sections[currentEditSection].rows[currentEditIndex] = rowObj;
       await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'new_row') {
       const rowObj = {};
-      (LOCAL_DATA[currentEditPage].sections[currentEditSection].headers || []).forEach((_, idx) => {
-        rowObj[idx] = window.currentTableQuills[idx].root.innerHTML;
+      const headers = LOCAL_DATA[currentEditPage].sections[currentEditSection].headers || [];
+      headers.forEach((_, idx) => { 
+        rowObj[idx] = window.currentTableQuills[idx].root.innerHTML; 
       });
       if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].rows) LOCAL_DATA[currentEditPage].sections[currentEditSection].rows = [];
       LOCAL_DATA[currentEditPage].sections[currentEditSection].rows.push(rowObj);
@@ -1845,20 +1478,26 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
     } else if (currentEditType === 'table_config') {
       const sec = LOCAL_DATA[currentEditPage].sections[currentEditSection];
       sec.title = document.getElementById('sectionTitleInput').value;
+
       if (sec.type === 'table') {
         const colRows = document.querySelectorAll('.col-edit-row');
-        const newHeaders = [], originalIndices = [];
+        const newHeaders = [];
+        const originalIndices = [];
+
         colRows.forEach(row => {
           newHeaders.push(row.querySelector('.col-name').value);
           const origIdx = row.getAttribute('data-original-index');
-          originalIndices.push(origIdx !== null ? parseInt(origIdx) : -1);
+          originalIndices.push(origIdx !== null ? parseInt(origIdx) : -1); 
         });
+
         sec.headers = newHeaders;
+
         if (sec.rows) {
           sec.rows = sec.rows.map(oldRowObj => {
             const newRowObj = {};
             originalIndices.forEach((origIdx, newIdx) => {
-              newRowObj[newIdx] = origIdx !== -1 && oldRowObj[origIdx] !== undefined ? oldRowObj[origIdx] : '';
+              if (origIdx !== -1) newRowObj[newIdx] = oldRowObj[origIdx] !== undefined ? oldRowObj[origIdx] : '';
+              else newRowObj[newIdx] = ''; 
             });
             return newRowObj;
           });
@@ -1868,71 +1507,302 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
 
     } else if (currentEditType === 'menu_manager') {
       const rows = document.querySelectorAll('.menu-edit-row');
-      const newCards = [], newCardIds = [], batchPromises = [];
+      const newCards = [];
+      const newCardIds = []; 
+      const batchPromises = []; 
+
       rows.forEach(row => {
-        const icon  = row.querySelector('.menu-icon').value || '📁';
-        const id    = row.querySelector('.menu-id').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+        const icon = row.querySelector('.menu-icon').value || '📁';
+        const id = row.querySelector('.menu-id').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, ''); 
         const title = row.querySelector('.menu-title').value;
-        const desc  = row.querySelector('.menu-desc').value;
+        const desc = row.querySelector('.menu-desc').value;
+
         if (id && title) {
           newCards.push({ id, icon, title, desc });
           newCardIds.push(id);
           if (!LOCAL_DATA[id]) {
-            LOCAL_DATA[id] = { title, meta: desc, sections: [] };
+            LOCAL_DATA[id] = { title: title, meta: desc, sections: [] };
             batchPromises.push(setDoc(doc(db, "guias_ipc", id), LOCAL_DATA[id]));
-          } else if (LOCAL_DATA[id].title !== title || LOCAL_DATA[id].meta !== desc) {
-            LOCAL_DATA[id].title = title; LOCAL_DATA[id].meta = desc;
-            batchPromises.push(setDoc(doc(db, "guias_ipc", id), LOCAL_DATA[id]));
+          } else {
+            if (LOCAL_DATA[id].title !== title || LOCAL_DATA[id].meta !== desc) {
+              LOCAL_DATA[id].title = title;
+              LOCAL_DATA[id].meta = desc;
+              batchPromises.push(setDoc(doc(db, "guias_ipc", id), LOCAL_DATA[id]));
+            }
           }
         }
       });
-      (LOCAL_DATA['home'].cards || []).forEach(old => {
+
+      const oldCards = LOCAL_DATA['home'].cards || [];
+      oldCards.forEach(old => {
         if (!newCardIds.includes(old.id)) {
-          batchPromises.push(deleteDoc(doc(db, "guias_ipc", old.id)));
-          delete LOCAL_DATA[old.id];
+          batchPromises.push(deleteDoc(doc(db, "guias_ipc", old.id))); 
+          delete LOCAL_DATA[old.id]; 
         }
       });
+
       LOCAL_DATA['home'].cards = newCards;
       await setDoc(doc(db, "guias_ipc", "home"), LOCAL_DATA['home']);
       if (batchPromises.length > 0) await Promise.all(batchPromises);
-      renderSidebar();
-      renderPage(currentPage);
+
+      renderSidebar(); 
+      renderPage(currentPage); 
     }
 
     cerrarModal();
-    toast('Cambios guardados correctamente', 'success');
   } catch (err) {
-    console.error("Error al salvar:", err);
-    toast('Error al sincronizar con Firebase', 'error', 5000);
+    console.error("Error al salvar cambios:", err);
+    alert("Hubo un error al sincronizar con la nube.");
   } finally {
     btn.textContent = 'Guardar Cambios';
     btn.disabled = false;
   }
 });
 
-/* ============================================================
-   COMPACT TABLE TOGGLE
-   ============================================================ */
-(function() {
-  const STORAGE_KEY = 'unir_compact_tables';
-  const btn = document.getElementById('compactBtn');
-  let compact = localStorage.getItem(STORAGE_KEY) === '1';
+async function guardarEnFirebase(pageKey) {
+  const docRef = doc(db, "guias_ipc", pageKey);
+  await setDoc(docRef, LOCAL_DATA[pageKey]);
+  buildSearchIndex();
+  renderPage(pageKey);
+}
 
-  function applyCompact() {
-    document.body.classList.toggle('table-compact', compact);
-    btn.classList.toggle('active', compact);
-    btn.title = compact ? 'Volver a vista normal' : 'Alternar vista compacta de tablas';
+/* ============================================================
+   MOTOR DE REDIMENSIÓN DE COLUMNAS (DRAG & DROP)
+   ============================================================ */
+let isResizing = false;
+let currentResizer = null;
+let startX, startWidth, currentTh, currentTable;
+
+document.addEventListener('mousedown', function(e) {
+  if (e.target.classList.contains('resizer')) {
+    isResizing = true;
+    currentResizer = e.target;
+    currentTh = currentResizer.parentElement;
+    currentTable = currentTh.closest('table');
+    startX = e.pageX;
+    startWidth = currentTh.offsetWidth;
+    currentResizer.classList.add('resizing');
+    e.preventDefault(); 
+  }
+});
+
+document.addEventListener('mousemove', function(e) {
+  if (isResizing && currentTh) {
+    const tableWidth = currentTable.offsetWidth;
+    const newWidthPx = startWidth + (e.pageX - startX);
+    const newWidthPct = (newWidthPx / tableWidth) * 100;
+    currentTh.style.width = newWidthPct + '%';
+  }
+});
+
+document.addEventListener('mouseup', async function(e) {
+  if (isResizing && currentResizer) {
+    isResizing = false;
+    currentResizer.classList.remove('resizing');
+    
+    const pageKey = currentResizer.dataset.page;
+    const secIdx = currentResizer.dataset.sec;
+    
+    const ths = currentTable.querySelectorAll('th:not(.admin-only)');
+    const widths = Array.from(ths).map(t => {
+      return (t.offsetWidth / currentTable.offsetWidth * 100).toFixed(2) + '%';
+    });
+    
+    if (!LOCAL_DATA[pageKey].sections[secIdx].colWidths) {
+      LOCAL_DATA[pageKey].sections[secIdx].colWidths = [];
+    }
+    LOCAL_DATA[pageKey].sections[secIdx].colWidths = widths;
+    
+    try {
+      const docRef = doc(db, "guias_ipc", pageKey);
+      await setDoc(docRef, LOCAL_DATA[pageKey]);
+    } catch(err) {
+      console.error("Error al guardar el ancho de las columnas en Firebase:", err);
+    }
+    
+    currentResizer = null; currentTh = null; currentTable = null;
+  }
+});
+
+/* ============================================================
+   MOTOR DE BÚSQUEDA GLOBAL ASÍNCRONO
+   ============================================================ */
+function stripHtml(html) {
+   let tmp = document.createElement("DIV");
+   tmp.innerHTML = html;
+   return tmp.textContent || tmp.innerText || "";
+}
+
+function buildSearchIndex() {
+  SEARCH_INDEX = [];
+  const activePages = (LOCAL_DATA['home']?.cards || []).map(c => c.id);
+
+  for (const [key, page] of Object.entries(LOCAL_DATA)) {
+    if (key === 'home') continue;
+    if (!activePages.includes(key)) continue;
+
+    for (const sec of (page.sections || [])) {
+      if (sec.type === 'table' && sec.rows) {
+        for (const row of sec.rows) {
+          const rowArray = Object.values(row);
+          SEARCH_INDEX.push({
+            page: key, pageTitle: page.title, section: sec.title, type: 'row',
+            headers: sec.headers, row: rowArray, text: rowArray.join(' ').toLowerCase()
+          });
+        }
+      } else if (sec.type === 'cards' && sec.cards) {
+        for (const c of sec.cards) {
+          SEARCH_INDEX.push({
+            page: key, pageTitle: page.title, section: sec.title, type: 'card',
+            title: c.title, body: c.body, 
+            text: (c.title + ' ' + stripHtml(c.body)).toLowerCase()
+          });
+        }
+      }
+    }
+    if (page.notes) {
+      for (const n of page.notes) {
+        SEARCH_INDEX.push({
+          page: key, pageTitle: page.title, section: 'Notas', type: 'note',
+          body: n, text: n.toLowerCase()
+        });
+      }
+    }
+  }
+}
+
+function renderSearchResults(query) {
+  const term = query.trim().toLowerCase();
+  if (!term) { renderPage(currentPage || 'home'); return; }
+
+  const results = SEARCH_INDEX.filter(r => r.text.includes(term));
+  document.getElementById('pageTitle').textContent = `Búsqueda: "${query}"`;
+  document.getElementById('pageMeta').textContent  = `${results.length} resultado${results.length !== 1 ? 's' : ''}`;
+
+  if (!results.length) {
+    document.getElementById('content').innerHTML = '<div class="empty">Sin resultados de coincidencia.</div>';
+    return;
   }
 
-  applyCompact();
+  const groups = {};
+  for (const r of results) {
+    if (!groups[r.page]) groups[r.page] = { pageTitle: r.pageTitle, items: [] };
+    groups[r.page].items.push(r);
+  }
 
-  btn.addEventListener('click', () => {
-    compact = !compact;
-    localStorage.setItem(STORAGE_KEY, compact ? '1' : '0');
-    applyCompact();
+  let html = '';
+  for (const [pageKey, group] of Object.entries(groups)) {
+    html += `<div class="result-section">
+      <div class="section-title">
+        <span class="result-tag" data-go="${pageKey}">${escapeHTML(group.pageTitle)}</span>
+        <span style="color:var(--text-muted);font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${group.items.length} coincidencia${group.items.length !== 1 ? 's' : ''}</span>
+      </div>`;
+
+    const bySection = {};
+    for (const it of group.items) {
+      if (!bySection[it.section]) bySection[it.section] = [];
+      bySection[it.section].push(it);
+    }
+
+    for (const [secName, items] of Object.entries(bySection)) {
+      if (items.every(i => i.type === 'row')) {
+        const headers = items[0].headers;
+        html += `<h4 style="font-size:12px;color:var(--text-dim);margin:10px 0 6px;font-weight:500">${escapeHTML(secName)}</h4>`;
+        html += '<div class="table-wrap"><table>';
+        if (headers && headers.length) {
+          html += '<thead><tr>' + headers.map(h => `<th>${escapeHTML(h)}</th>`).join('') + '</tr></thead>';
+        }
+        html += '<tbody>';
+        for (const it of items) {
+          html += '<tr>' + it.row.map(cell => {
+            const empty = cell === '' || cell === null || cell === undefined;
+            const linked = linkify(cell);
+            let finalCell = highlightInLinkedHtml(linked, term);
+            if (cell === 'CHROME') finalCell = '<span class="pill chrome">CHROME</span>';
+            else if (cell === 'EDGE') finalCell = '<span class="pill edge">EDGE</span>';
+            return `<td${empty ? ' class="muted"' : ''}>${finalCell}</td>`;
+          }).join('') + '</tr>';
+        }
+        html += '</tbody></table></div>';
+      } else {
+        html += `<h4 style="font-size:12px;color:var(--text-dim);margin:10px 0 6px;font-weight:500">${escapeHTML(secName)}</h4>`;
+        for (const it of items) {
+          if (it.type === 'card') {
+            html += `<div class="card" style="width: 100%;"><h4>${escapeHTML(it.title)}</h4><div class="ql-editor">${highlightInLinkedHtml(it.body, term)}</div></div>`;
+          } else if (it.type === 'note') {
+            html += `<div class="notes"><p>${highlightInLinkedHtml(linkify(it.body), term)}</p></div>`;
+          }
+        }
+      }
+    }
+    html += '</div>';
+  }
+  
+  document.getElementById('content').innerHTML = html;
+  document.querySelectorAll('.result-tag').forEach(t => {
+    t.addEventListener('click', () => {
+      document.getElementById('searchInput').value = '';
+      currentPage = t.dataset.go;
+      renderPage(currentPage);
+      renderSidebar();
+    });
   });
-})();
+}
 
+function highlightInLinkedHtml(html, term) {
+  if (!term) return html;
+  try {
+    const re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    return html.split(/(<[^>]+>)/).map(part => {
+      if (part.startsWith('<')) return part;
+      return part.replace(re, '<mark>$1</mark>');
+    }).join('');
+  } catch (e) { return html; }
+}
+
+/* ============================================================
+   UTILIDADES COMUNES Y ESCUCHADORES DE EVENTOS
+   ============================================================ */
+function linkify(text) {
+  if (text === null || text === undefined) return '';
+  let html = escapeHTML(String(text));
+  html = html.replace(/mailto:([\w._%+-]+@[\w.-]+\.[A-Za-z]{2,})/g, '<a class="mail" href="mailto:$1">$1</a>');
+  html = html.replace(/(?<![\w@.:/])([\w._%+-]+@[\w.-]+\.[A-Za-z]{2,})(?![\w@])/g, '<a class="mail" href="mailto:$1">$1</a>');
+  html = html.replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  html = html.replace(/(?<!\d)(\b[69]\d{8}\b)(?!\d)/g, '<a class="tel" href="tel:$1">$1</a>');
+  return html;
+}
+
+function escapeHTML(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+let currentPage = 'home';
+const searchInput = document.getElementById('searchInput');
+let searchTimer;
+searchInput.addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    const q = e.target.value;
+    if (q.trim()) renderSearchResults(q);
+    else renderPage(currentPage);
+  }, 120);
+});
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  }
+  if (e.key === 'Escape' && document.activeElement === searchInput) {
+    searchInput.value = '';
+    renderPage(currentPage);
+    searchInput.blur();
+  }
+});
+
+// Lanzar inicio de aplicación asíncrona
 initApp();
 </script>
 </body>
