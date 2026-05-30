@@ -7,7 +7,7 @@
 
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-<script src="https://unpkg.com/quill-image-compress@1.2.22/dist/quill.imageCompressor.min.js"></script>
+
 
 <style>
   :root {
@@ -557,7 +557,74 @@ import { getFirestore, doc, collection, getDocs, setDoc, deleteDoc, enableIndexe
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // REGISTRO GLOBAL DEL COMPRESOR DE IMÁGENES
-Quill.register('modules/imageCompress', imageCompressor);
+// 1. Engaño a Quill para que no dé error por la configuración de compresión antigua en las tablas
+Quill.register('modules/imageCompress', function(quill, options) {});
+
+// 2. NUEVO MOTOR NATIVO DE COMPRESIÓN (Sin duplicados)
+function procesarImagenQuill(e, files, editorNode) {
+  let hasImage = false;
+  // Encontrar a qué editor de la pantalla pertenece
+  const quillInstance = Quill.find(editorNode.parentElement);
+  if (!quillInstance) return;
+
+  for (let file of files) {
+    if (file.type.startsWith('image/')) {
+      if (!hasImage) {
+        e.preventDefault();  // Bloquea el pegado original de Quill
+        e.stopPropagation(); // Detiene el evento
+        hasImage = true;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+          } else {
+            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Comprimir a JPEG (calidad 70%) para que pese ~30KB
+          const base64 = canvas.toDataURL('image/jpeg', 0.7);
+          
+          // Inyectar la versión comprimida
+          const range = quillInstance.getSelection(true);
+          quillInstance.insertEmbed(range.index, 'image', base64);
+          quillInstance.setSelection(range.index + 1);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+}
+
+// Escuchadores globales que atrapan el "Pegar" y "Arrastrar" antes que nadie
+document.addEventListener('paste', function(e) {
+  const editorNode = e.target.closest('.ql-editor');
+  if (editorNode && e.clipboardData && e.clipboardData.files) {
+    procesarImagenQuill(e, e.clipboardData.files, editorNode);
+  }
+}, true);
+
+document.addEventListener('drop', function(e) {
+  const editorNode = e.target.closest('.ql-editor');
+  if (editorNode && e.dataTransfer && e.dataTransfer.files) {
+    procesarImagenQuill(e, e.dataTransfer.files, editorNode);
+  }
+}, true);
 
 const firebaseConfig = {
   apiKey: "AIzaSyBc_rVSeTa-RVG9jMvuNoTlKVFIMfVlCQE",
