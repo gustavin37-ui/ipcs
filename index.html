@@ -308,7 +308,8 @@
     top: 0;
     z-index: 1;
   }
-  th {
+th {
+    position: relative; /* Clave para el redimensionador */
     text-align: left;
     padding: 12px 16px;
     font-weight: 600;
@@ -317,7 +318,25 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom: 1px solid var(--border);
-    border-right: 1px solid var(--border-soft); /* Separador vertical cabecera */
+    border-right: 1px solid var(--border-soft);
+  }
+  
+  /* Controlador de redimensionamiento */
+  .resizer {
+    position: absolute;
+    right: -3px;
+    top: 0;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    user-select: none;
+    z-index: 10;
+    background: transparent;
+    transition: background 0.2s;
+  }
+  .resizer:hover, .resizer.resizing {
+    background: var(--accent);
+    opacity: 0.8;
   }
   td {
     padding: 12px 16px;
@@ -789,8 +808,19 @@ function smartFormat(text) {
 
 function renderTable(headers, rows, pageKey, sectionIndex) {
   let html = '<div class="table-wrap"><table>';
+  
+  // Rescatar los anchos guardados en Firebase (si existen)
+  const colWidths = LOCAL_DATA[pageKey].sections[sectionIndex].colWidths || [];
+
   if (headers && headers.length) {
-    html += '<thead><tr>' + headers.map(h => `<th>${escapeHTML(h)}</th>`).join('');
+    html += '<thead><tr>';
+    headers.forEach((h, idx) => {
+      // Aplicar el ancho si existe en base de datos
+      const widthStyle = colWidths[idx] ? `width: ${colWidths[idx]};` : '';
+      html += `<th style="${widthStyle}">${escapeHTML(h)}
+                 <div class="resizer admin-only" data-page="${pageKey}" data-sec="${sectionIndex}"></div>
+               </th>`;
+    });
     html += '<th class="admin-only" style="text-align: right; width: 75px;">Gestión</th></tr></thead>';
   }
   html += '<tbody>';
@@ -1675,6 +1705,67 @@ document.addEventListener('keydown', e => {
     searchInput.value = '';
     renderPage(currentPage);
     searchInput.blur();
+  }
+});
+
+  /* ============================================================
+   MOTOR DE REDIMENSIÓN DE COLUMNAS (DRAG & DROP)
+   ============================================================ */
+let isResizing = false;
+let currentResizer = null;
+let startX, startWidth, currentTh, currentTable;
+
+document.addEventListener('mousedown', function(e) {
+  if (e.target.classList.contains('resizer')) {
+    isResizing = true;
+    currentResizer = e.target;
+    currentTh = currentResizer.parentElement;
+    currentTable = currentTh.closest('table');
+    startX = e.pageX;
+    startWidth = currentTh.offsetWidth;
+    currentResizer.classList.add('resizing');
+    e.preventDefault(); // Evita que se seleccione texto al arrastrar
+  }
+});
+
+document.addEventListener('mousemove', function(e) {
+  if (isResizing && currentTh) {
+    const tableWidth = currentTable.offsetWidth;
+    const newWidthPx = startWidth + (e.pageX - startX);
+    const newWidthPct = (newWidthPx / tableWidth) * 100;
+    currentTh.style.width = newWidthPct + '%';
+  }
+});
+
+document.addEventListener('mouseup', async function(e) {
+  if (isResizing && currentResizer) {
+    isResizing = false;
+    currentResizer.classList.remove('resizing');
+    
+    const pageKey = currentResizer.dataset.page;
+    const secIdx = currentResizer.dataset.sec;
+    
+    // Recopilar todos los anchos en porcentajes de las columnas de datos
+    const ths = currentTable.querySelectorAll('th:not(.admin-only)');
+    const widths = Array.from(ths).map(t => {
+      return (t.offsetWidth / currentTable.offsetWidth * 100).toFixed(2) + '%';
+    });
+    
+    // Guardar en la variable local
+    if (!LOCAL_DATA[pageKey].sections[secIdx].colWidths) {
+      LOCAL_DATA[pageKey].sections[secIdx].colWidths = [];
+    }
+    LOCAL_DATA[pageKey].sections[secIdx].colWidths = widths;
+    
+    // Enviar a Firebase silenciosamente en segundo plano
+    try {
+      const docRef = doc(db, "guias_ipc", pageKey);
+      await setDoc(docRef, LOCAL_DATA[pageKey]);
+    } catch(err) {
+      console.error("Error al guardar el ancho de las columnas en Firebase:", err);
+    }
+    
+    currentResizer = null; currentTh = null; currentTable = null;
   }
 });
 
