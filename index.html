@@ -322,7 +322,7 @@
     border-bottom: 1px solid var(--border-soft);
     color: var(--text);
     vertical-align: top;
-    white-space: pre-wrap; /* Mantiene saltos de línea para texto plano */
+    white-space: pre-wrap;
   }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: rgba(255,255,255,0.02); }
@@ -411,13 +411,12 @@
   .btn-action-ui { background: transparent; border: none; cursor: pointer; font-size: 14px; opacity: 0.4; transition: opacity 0.15s; padding: 2px; }
   .btn-action-ui:hover { opacity: 1; }
   
-  /* ESTILOS PARA EDICIÓN MASIVA (BULK) - Ahora usan ContentEditable */
+  /* ESTILOS PARA EDICIÓN MASIVA (BULK) - ContentEditable */
   .bulk-input {
     width: 100%; min-width: 150px; background: transparent; border: none; color: var(--text); 
     font-family: inherit; font-size: 13px; outline: none; padding: 6px;
   }
   .bulk-input:focus { background: rgba(255,255,255,0.03); }
-  /* Para que los <p> del modo Excel no añadan márgenes enormes */
   .bulk-input p { margin: 0; padding: 0; }
 
   /* ===== ESTILOS QUILL (MODO OSCURO) ===== */
@@ -425,7 +424,6 @@
   .ql-container.ql-snow { border: 1px solid var(--border-soft) !important; background: var(--bg-card); border-radius: 0 0 var(--radius) var(--radius); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; color: var(--text); }
   .ql-editor { font-family: inherit; line-height: 1.6; padding: 15px; }
   
-  /* Alturas específicas para tarjetas vs celdas de tabla */
   .quill-card-editor .ql-editor { min-height: 200px; }
   .quill-table-editor .ql-editor { min-height: 80px; max-height: 250px; overflow-y: auto; }
 
@@ -434,7 +432,6 @@
   .ql-snow .ql-picker { color: var(--text-dim) !important; }
   .ql-editor.ql-blank::before { color: rgba(154, 167, 180, 0.5) !important; font-style: normal; }
   
-  /* Ajuste de lectura para tarjetas y tablas con HTML de Quill */
   .card .ql-editor, td .ql-editor { padding: 0; min-height: auto; overflow: visible; white-space: normal; }
   td .ql-editor p { margin: 0; padding: 0; }
   
@@ -557,8 +554,8 @@ let currentEditIndex = null;
 let currentEditType = null; 
 
 // Controles Globales para Editores Quill
-window.currentQuill = null; // Para tarjetas
-window.currentTableQuills = {}; // Para celdas de tabla fila a fila
+window.currentQuill = null; 
+window.currentTableQuills = {}; 
 
 /* ============================================================
    LÓGICA DE AUTENTICACIÓN Y ROLES
@@ -639,6 +636,101 @@ async function initApp() {
 }
 
 /* ============================================================
+   GENERADOR PDF
+   ============================================================ */
+window.exportarTodoAPDF = function() {
+  const printDiv = document.createElement('div');
+  printDiv.id = 'print-container';
+  printDiv.style.cssText = 'background: white; color: black; font-family: sans-serif; padding: 20px;';
+
+  let printHtml = `
+    <div style="text-align:center; margin-bottom: 40px;">
+      <h1 style="font-size: 28px; margin-bottom: 5px;">Guía de Herramientas UNIR</h1>
+      <p style="color: #666;">Exportación completa de procedimientos y enlaces</p>
+    </div>
+  `;
+
+  // Iterar en el orden configurado en el Inicio
+  const order = (LOCAL_DATA['home']?.cards || []).map(c => c.id);
+  
+  order.forEach(key => {
+    const page = LOCAL_DATA[key];
+    if (!page) return;
+
+    printHtml += `<div style="page-break-before: always; margin-bottom: 30px;">`;
+    printHtml += `<h2 style="color: #1a2128; border-bottom: 2px solid #d4af37; padding-bottom: 8px; margin-bottom: 20px; font-size: 22px;">${escapeHTML(page.title)}</h2>`;
+
+    (page.sections || []).forEach(sec => {
+      printHtml += `<h3 style="color: #2d3743; margin-top: 25px; margin-bottom: 12px; font-size: 16px;">${escapeHTML(sec.title)}</h3>`;
+      
+      if (sec.type === 'table') {
+        printHtml += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px;">`;
+        if (sec.headers && sec.headers.length) {
+          printHtml += `<thead><tr>`;
+          sec.headers.forEach(h => {
+            printHtml += `<th style="border: 1px solid #aaa; padding: 8px; background: #f4f4f4; text-align:left; color: #333;">${escapeHTML(h)}</th>`;
+          });
+          printHtml += `</tr></thead>`;
+        }
+        printHtml += `<tbody>`;
+        (sec.rows || []).forEach(row => {
+          printHtml += `<tr>`;
+          (sec.headers || []).forEach((_, idx) => {
+            let cell = row[idx] !== undefined ? String(row[idx]) : '';
+            // Importante mantener espacios para formato plano exportado
+            printHtml += `<td style="border: 1px solid #aaa; padding: 8px; color: #000; white-space: pre-wrap;">${smartFormat(cell)}</td>`;
+          });
+          printHtml += `</tr>`;
+        });
+        printHtml += `</tbody></table>`;
+      } else if (sec.type === 'cards') {
+        (sec.cards || []).forEach(card => {
+          printHtml += `<div style="border: 1px solid #aaa; border-radius: 6px; padding: 15px; margin-bottom: 15px; page-break-inside: avoid; background: #fefefe;">
+            <h4 style="margin: 0 0 10px 0; color: #1a2128; font-size: 14px; border-bottom: 1px solid #eee; padding-bottom: 5px;">${escapeHTML(card.title)}</h4>
+            <div style="font-size: 13px; color: #333; line-height: 1.5;">${card.body}</div>
+          </div>`;
+        });
+      }
+    });
+
+    if (page.notes && page.notes.length) {
+      printHtml += `<div style="margin-top: 20px; padding: 12px; background: #fffcf0; border-left: 4px solid #d4af37; font-size: 12px; page-break-inside: avoid;">
+        <strong style="display:block; margin-bottom: 5px;">Notas:</strong><ul style="margin:0; padding-left: 20px;">`;
+      page.notes.forEach(n => {
+        printHtml += `<li style="margin-bottom: 4px;">${smartFormat(n)}</li>`;
+      });
+      printHtml += `</ul></div>`;
+    }
+
+    printHtml += `</div>`;
+  });
+
+  printDiv.innerHTML = printHtml;
+  document.body.appendChild(printDiv);
+
+  const style = document.createElement('style');
+  style.id = 'print-style';
+  style.innerHTML = `
+    @media print {
+      body { background: white !important; margin: 0; padding: 0; }
+      .app, .modal-overlay, #loginModal { display: none !important; }
+      #print-container { display: block !important; }
+      a { text-decoration: none; color: #1a0dab; }
+      .ql-editor { padding: 0; }
+      /* Prevenir que el fondo oscuro afecte a los textos dentro de Quill */
+      .ql-editor * { color: black; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  setTimeout(() => {
+    window.print();
+    document.body.removeChild(printDiv);
+    document.head.removeChild(style);
+  }, 300);
+}
+
+/* ============================================================
    RENDERIZADO INTERFAZ Y MENÚ
    ============================================================ */
 window.renderSidebar = function() {
@@ -673,14 +765,13 @@ window.renderSidebar = function() {
   });
 }
 
-// Función inteligente para detectar si es texto HTML enriquecido (Quill) o texto plano antiguo
 function smartFormat(text) {
   if (!text) return '';
   const str = String(text);
   if (/<[a-z][\s\S]*>/i.test(str)) {
-    return str; // Ya es HTML de Quill, no lo escapamos
+    return str; 
   }
-  return linkify(str); // Texto plano antiguo, lo linkeamos y escapamos
+  return linkify(str); 
 }
 
 function renderTable(headers, rows, pageKey, sectionIndex) {
@@ -706,7 +797,6 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
       else if (cellStr === 'EDGE/CHROME') finalCell = '<span class="pill chrome">EDGE/CHROME</span>';
       else if (cellStr === 'EDGE - MODO IE') finalCell = '<span class="pill edge">EDGE - MODO IE</span>';
       
-      // Envolvemos en ql-editor para que si tiene listas o negritas de Quill, se vean bien sin romper el padding
       html += `<td${empty ? ' class="muted"' : ''}><div class="${/<[a-z][\s\S]*>/i.test(cellStr) ? 'ql-editor' : ''}">${finalCell}</div></td>`;
     }
 
@@ -724,7 +814,7 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
 }
 
 function renderCards(cards, pageKey, sectionIndex) {
-  let html = '<div>'; // Ocupa el 100% de la pantalla
+  let html = '<div>'; 
   
   function createCardHtml(c, index) {
     return `
@@ -763,6 +853,9 @@ window.renderPage = function(key) {
           <div>
             <h2>Herramientas UNIR</h2>
             <p>Guía rápida de agente — Responsables del servicio, agentes de atención y soporte, técnicos de formación.</p>
+            <button onclick="exportarTodoAPDF()" style="margin-top: 15px; background: var(--info); color: #fff; padding: 8px 16px; border: none; border-radius: var(--radius); cursor: pointer; font-size: 13px; font-weight: 600; transition: background 0.2s; display: inline-flex; align-items: center; gap: 6px;">
+              📄 Exportar toda la guía a PDF
+            </button>
           </div>
           <button class="admin-only" onclick="gestionarMenu()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">⚙️ Administrar Categorías</button>
         </div>
@@ -783,7 +876,6 @@ window.renderPage = function(key) {
     return;
   }
 
-  // Renderizar las secciones de la página
   for (let s = 0; s < (page.sections || []).length; s++) {
     const sec = page.sections[s];
     html += `<div class="section">
@@ -888,7 +980,7 @@ window.eliminarSeccion = async function(pageKey, sectionIndex) {
   await guardarEnFirebase(pageKey);
 }
 
-// ---- 2. EDICIÓN MASIVA (MODO EXCEL con ContentEditable para preservar HTML) ----
+// ---- 2. EDICIÓN MASIVA (MODO EXCEL) ----
 window.editarTablaCompleta = function(pageKey, sectionIndex) {
   currentEditPage = pageKey;
   currentEditSection = sectionIndex;
@@ -918,7 +1010,6 @@ window.editarTablaCompleta = function(pageKey, sectionIndex) {
     `;
     headers.forEach((_, cIdx) => {
       const val = rowObj[cIdx] !== undefined ? rowObj[cIdx] : '';
-      // Utilizamos contenteditable div en lugar de textarea para que soporte HTML sin ver las etiquetas <p>
       html += `<td style="padding: 0; border-bottom: 1px solid var(--border-soft); border-right: 1px solid var(--border-soft);">
         <div class="bulk-input" contenteditable="true" data-col="${cIdx}">${val}</div>
       </td>`;
@@ -1029,7 +1120,7 @@ window.editarFila = function(pageKey, sectionIndex, rowIndex) {
   });
   
   document.getElementById('modalBody').innerHTML = bodyHtml;
-  abrirModal('fullscreen'); // Usamos pantalla completa para que quepan varias toolbars
+  abrirModal('fullscreen'); 
   
   setTimeout(() => {
     window.currentTableQuills = {};
@@ -1045,7 +1136,6 @@ window.editarFila = function(pageKey, sectionIndex, rowIndex) {
           ]
         }
       });
-      // Detectamos si es viejo plain text y si es necesario lo transformamos o pegamos
       q.clipboard.dangerouslyPasteHTML(rowObj[idx] !== undefined ? String(rowObj[idx]) : '');
       window.currentTableQuills[idx] = q;
     });
@@ -1267,7 +1357,6 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       trs.forEach(tr => {
         const rowObj = {};
         const inputs = tr.querySelectorAll('.bulk-input');
-        // Usamos innerHTML para guardar los tags HTML y respetar lo que hicimos en Quill
         inputs.forEach(inp => { rowObj[inp.dataset.col] = inp.innerHTML; });
         newRows.push(rowObj);
       });
