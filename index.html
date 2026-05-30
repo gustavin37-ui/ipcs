@@ -653,18 +653,21 @@ window.exportarTodoAPDF = function() {
   // Iterar en el orden configurado en el Inicio
   const order = (LOCAL_DATA['home']?.cards || []).map(c => c.id);
   
-  order.forEach(key => {
+  order.forEach((key, index) => {
     const page = LOCAL_DATA[key];
     if (!page) return;
 
-    printHtml += `<div style="page-break-before: always; margin-bottom: 30px;">`;
+    // Evitamos salto de página en el primer elemento para no dejar un folio en blanco tras el título
+    const pageBreak = index === 0 ? '' : 'page-break-before: always;';
+
+    printHtml += `<div style="${pageBreak} margin-bottom: 30px;">`;
     printHtml += `<h2 style="color: #1a2128; border-bottom: 2px solid #d4af37; padding-bottom: 8px; margin-bottom: 20px; font-size: 22px;">${escapeHTML(page.title)}</h2>`;
 
     (page.sections || []).forEach(sec => {
       printHtml += `<h3 style="color: #2d3743; margin-top: 25px; margin-bottom: 12px; font-size: 16px;">${escapeHTML(sec.title)}</h3>`;
       
       if (sec.type === 'table') {
-        printHtml += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px;">`;
+        printHtml += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; page-break-inside: auto;">`;
         if (sec.headers && sec.headers.length) {
           printHtml += `<thead><tr>`;
           sec.headers.forEach(h => {
@@ -674,7 +677,7 @@ window.exportarTodoAPDF = function() {
         }
         printHtml += `<tbody>`;
         (sec.rows || []).forEach(row => {
-          printHtml += `<tr>`;
+          printHtml += `<tr style="page-break-inside: avoid;">`;
           (sec.headers || []).forEach((_, idx) => {
             let cell = row[idx] !== undefined ? String(row[idx]) : '';
             // Importante mantener espacios para formato plano exportado
@@ -712,13 +715,20 @@ window.exportarTodoAPDF = function() {
   style.id = 'print-style';
   style.innerHTML = `
     @media print {
-      body { background: white !important; margin: 0; padding: 0; }
+      /* CLAVE PARA IMPRIMIR TODO: Liberamos el height y el overflow */
+      html, body { 
+        height: auto !important; 
+        overflow: visible !important; 
+        background: white !important; 
+        margin: 0; 
+        padding: 0; 
+      }
       .app, .modal-overlay, #loginModal { display: none !important; }
       #print-container { display: block !important; }
       a { text-decoration: none; color: #1a0dab; }
-      .ql-editor { padding: 0; }
+      .ql-editor { padding: 0; overflow: visible !important; }
       /* Prevenir que el fondo oscuro afecte a los textos dentro de Quill */
-      .ql-editor * { color: black; }
+      .ql-editor * { color: black !important; }
     }
   `;
   document.head.appendChild(style);
