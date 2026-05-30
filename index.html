@@ -1353,10 +1353,9 @@ function renderCards(cards, pageKey, sectionIndex) {
 function renderNoteSection(sec, pageKey, sectionIndex) {
   return `
     <div class="notes" style="position:relative;">
-      <div class="admin-only" style="position:absolute; top:12px; right:12px; gap:4px; z-index:10; display:flex;">
-        <button class="btn-action-ui" onclick="editarNota('${pageKey}',${sectionIndex})" title="Editar Nota" style="background:var(--bg-card); border:1px solid var(--border);">✏️ Editar Nota</button>
+      <div class="admin-only" style="position:absolute; top:8px; right:12px; gap:4px; z-index:10; display:flex;">
+        <button class="btn-action-ui" onclick="editarNota('${pageKey}',${sectionIndex})" title="Editar Nota" style="background:var(--bg-card); border:1px solid var(--border); padding: 4px 8px; font-size: 11px;">✏️ Editar</button>
       </div>
-      <span class="label">📌 ${escapeHTML(sec.title)}</span>
       <div class="ql-editor" style="padding:0; min-height:auto;">${sec.body || ''}</div>
     </div>
   `;
@@ -1408,12 +1407,24 @@ window.renderPage = function(key) {
     <span style="color:var(--text-dim);cursor:default;">${escapeHTML(page.title || key)}</span>
   </div>`;
 
-  for (let s = 0; s < (page.sections || []).length; s++) {
+for (let s = 0; s < (page.sections || []).length; s++) {
     const sec = page.sections[s];
+    const titleText = (sec.title || '').trim();
+    const hasTitle = titleText.length > 0;
+    
+    // Si no hay título, ocultamos la barra vertical. Si es nota, le ponemos la chincheta al principal.
+    let titleHtml = '<span></span>';
+    if (hasTitle) {
+      titleHtml = `<span class="section-title-left">${sec.type === 'note' ? '📌 ' : ''}${escapeHTML(titleText)}</span>`;
+    }
+
+    // Si no hay título, quitamos el borde y reducimos el margen para que los usuarios normales no vean "huecos" vacíos
+    const headerStyle = !hasTitle ? 'border-bottom:none; margin-bottom:6px; padding-bottom:0;' : '';
+
     html += `<div class="section page-enter" style="animation-delay:${0.04 * s}s;">
-      <div class="section-title">
-        <span class="section-title-left">${escapeHTML(sec.title)}</span>
-        <div class="admin-only" style="gap:8px;align-items:center;display:flex;">
+      <div class="section-title" style="${headerStyle}">
+        ${titleHtml}
+        <div class="admin-only" style="gap:8px;align-items:center;display:flex; ${!hasTitle ? 'margin-left:auto;' : ''}">
           <button class="btn-action-ui" style="font-size:14px;" onclick="moverSeccion('${key}',${s},-1)" title="Subir Sección">⬆️</button>
           <button class="btn-action-ui" style="font-size:14px; margin-right:4px;" onclick="moverSeccion('${key}',${s},1)" title="Bajar Sección">⬇️</button>
           
@@ -1423,9 +1434,11 @@ window.renderPage = function(key) {
           <button class="btn btn-ghost btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="eliminarSeccion('${key}',${s})" title="Eliminar Sección">🗑️</button>
         </div>
       </div>`;
+      
     if (sec.type === 'table') html += renderTable(sec.headers, sec.rows, key, s);
     else if (sec.type === 'cards') html += renderCards(sec.cards, key, s);
     else if (sec.type === 'note') html += renderNoteSection(sec, key, s);
+    
     html += '</div>';
   }
 
