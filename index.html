@@ -289,13 +289,13 @@
     border-radius: 2px;
   }
 
-  /* ===== TABLE ===== */
+/* ===== TABLE ===== */
   .table-wrap {
     background: var(--bg-elev);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow: hidden;
-    margin-bottom: 6px;
+    overflow-x: auto; /* Permite scroll horizontal si la tabla es muy ancha */
+    margin-bottom: 14px;
   }
   table {
     width: 100%;
@@ -306,23 +306,29 @@
     background: var(--bg-card);
     position: sticky;
     top: 0;
+    z-index: 1;
   }
   th {
     text-align: left;
-    padding: 10px 14px;
+    padding: 12px 16px;
     font-weight: 600;
     color: var(--accent);
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border-soft); /* Separador vertical cabecera */
   }
   td {
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border-soft);
+    border-right: 1px solid var(--border-soft); /* Separador vertical celda */
     color: var(--text);
     vertical-align: top;
     white-space: pre-wrap;
+  }
+  th:last-child, td:last-child {
+    border-right: none; /* Elimina el borde de la última columna para que no choque con la caja */
   }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: rgba(255,255,255,0.02); }
