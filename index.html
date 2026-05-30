@@ -462,7 +462,7 @@
         <div class="logo-mark">UNIR</div>
         <h1>Herramientas UNIR</h1>
       </div>
-      <div class="subtitle">Guía Rápida de Agente </div>
+      <div class="subtitle">Guía Rápida de Agente · v2.9</div>
     </div>
 
     <div class="search-box">
@@ -529,7 +529,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, collection, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, collection, getDocs, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -657,7 +657,6 @@ window.exportarTodoAPDF = function() {
     const page = LOCAL_DATA[key];
     if (!page) return;
 
-    // Evitamos salto de página en el primer elemento para no dejar un folio en blanco tras el título
     const pageBreak = index === 0 ? '' : 'page-break-before: always;';
 
     printHtml += `<div style="${pageBreak} margin-bottom: 30px;">`;
@@ -680,7 +679,6 @@ window.exportarTodoAPDF = function() {
           printHtml += `<tr style="page-break-inside: avoid;">`;
           (sec.headers || []).forEach((_, idx) => {
             let cell = row[idx] !== undefined ? String(row[idx]) : '';
-            // Importante mantener espacios para formato plano exportado
             printHtml += `<td style="border: 1px solid #aaa; padding: 8px; color: #000; white-space: pre-wrap;">${smartFormat(cell)}</td>`;
           });
           printHtml += `</tr>`;
@@ -727,7 +725,6 @@ window.exportarTodoAPDF = function() {
       #print-container { display: block !important; }
       a { text-decoration: none; color: #1a0dab; }
       .ql-editor { padding: 0; overflow: visible !important; }
-      /* Prevenir que el fondo oscuro afecte a los textos dentro de Quill */
       .ql-editor * { color: black !important; }
     }
   `;
@@ -861,6 +858,8 @@ window.renderPage = function(key) {
       <div class="home-hero">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div>
+            <h2>Herramientas UNIR</h2>
+            <p>Guía rápida de agente — Responsables del servicio, agentes de atención y soporte, técnicos de formación.</p>
             <button onclick="exportarTodoAPDF()" style="margin-top: 15px; background: var(--info); color: #fff; padding: 8px 16px; border: none; border-radius: var(--radius); cursor: pointer; font-size: 13px; font-weight: 600; transition: background 0.2s; display: inline-flex; align-items: center; gap: 6px;">
               📄 Exportar toda la guía a PDF
             </button>
@@ -1438,6 +1437,7 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
     } else if (currentEditType === 'menu_manager') {
       const rows = document.querySelectorAll('.menu-edit-row');
       const newCards = [];
+      const newCardIds = []; 
       const batchPromises = []; 
 
       rows.forEach(row => {
@@ -1448,6 +1448,7 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
 
         if (id && title) {
           newCards.push({ id, icon, title, desc });
+          newCardIds.push(id);
           if (!LOCAL_DATA[id]) {
             LOCAL_DATA[id] = { title: title, meta: desc, sections: [] };
             batchPromises.push(setDoc(doc(db, "guias_ipc", id), LOCAL_DATA[id]));
@@ -1458,6 +1459,15 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
               batchPromises.push(setDoc(doc(db, "guias_ipc", id), LOCAL_DATA[id]));
             }
           }
+        }
+      });
+
+      // Limpieza de documentos fantasma
+      const oldCards = LOCAL_DATA['home'].cards || [];
+      oldCards.forEach(old => {
+        if (!newCardIds.includes(old.id)) {
+          batchPromises.push(deleteDoc(doc(db, "guias_ipc", old.id))); 
+          delete LOCAL_DATA[old.id]; 
         }
       });
 
@@ -1497,8 +1507,12 @@ function stripHtml(html) {
 
 function buildSearchIndex() {
   SEARCH_INDEX = [];
+  const activePages = (LOCAL_DATA['home']?.cards || []).map(c => c.id);
+
   for (const [key, page] of Object.entries(LOCAL_DATA)) {
     if (key === 'home') continue;
+    if (!activePages.includes(key)) continue;
+
     for (const sec of (page.sections || [])) {
       if (sec.type === 'table' && sec.rows) {
         for (const row of sec.rows) {
@@ -1660,7 +1674,6 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Lanzar inicio de aplicación asíncrona
 initApp();
 </script>
 </body>
