@@ -1946,14 +1946,15 @@ window.gestionarMenu = function() {
       <input type="text" class="menu-id"    value="${escapeHTML(c.id)}"    style="width:90px;padding:5px;background:rgba(0,0,0,0.2);color:var(--text-muted);" title="ID Interno" disabled>
       <input type="text" class="menu-title" value="${escapeHTML(c.title)}" style="flex:1;padding:5px;" title="Título">
       <input type="text" class="menu-group" value="${escapeHTML(c.group || '')}" style="width:110px;padding:5px; border-color:var(--accent);" placeholder="Carpeta / Grupo" title="Escribe el mismo nombre de carpeta para agrupar varias categorías">
-      <input type="text" class="menu-desc"  value="${escapeHTML(c.desc)}"  style="display:none;">
+      <input type="text" class="menu-desc"  value="${escapeHTML(c.desc || '')}"  style="flex:1.5;padding:5px;" title="Descripción">
       <button onclick="this.parentElement.remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:15px;" title="Eliminar">🗑️</button>
     </div>`;
   });
   html += '</div>';
   html += `<button onclick="añadirFilaMenu()" class="btn btn-ghost btn-sm" style="margin-top:12px;border-style:dashed;">+ Nueva Categoría</button>`;
   document.getElementById('modalBody').innerHTML = html;
-  abrirModal('normal');
+ 
+    abrirModal('bulk'); 
 };
 
 window.añadirFilaMenu = function() {
@@ -1970,7 +1971,7 @@ window.añadirFilaMenu = function() {
     <input type="text" class="menu-id"    placeholder="id_nuevo" style="width:90px;padding:5px;border-color:var(--info);">
     <input type="text" class="menu-title" placeholder="Título" style="flex:1;padding:5px;">
     <input type="text" class="menu-group" placeholder="Carpeta" style="width:110px;padding:5px; border-color:var(--accent);">
-    <input type="text" class="menu-desc"  placeholder="Descripción..." style="display:none;">
+    <input type="text" class="menu-desc"  placeholder="Descripción..." style="flex:1.5;padding:5px;">
     <button onclick="this.parentElement.remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:15px;">🗑️</button>`;
   container.appendChild(div);
 };
