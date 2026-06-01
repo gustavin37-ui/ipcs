@@ -1251,7 +1251,7 @@ window.renderSidebar = function() {
     html += `<div class="nav-item ${currentPage === c.id ? 'active' : ''}" data-target="${c.id}"><span class="nav-icon">${escapeHTML(c.icon)}</span> ${escapeHTML(c.title)}</div>`;
   });
 
-  // 2. Renderizar los desplegables de subcategorías
+// 2. Renderizar los desplegables de subcategorías
   for (const g in groups) {
     if (g === 'root') continue;
     // Miramos si la página actual está dentro de esta carpeta para dejarla abierta
@@ -1266,6 +1266,14 @@ window.renderSidebar = function() {
     });
     html += `</div></details>`;
   }
+
+  //  Añadimos la sección estática de Accesos Rápidos
+  html += `
+    <div style="margin-top: 15px; border-top: 1px solid var(--border-soft); padding-top: 8px;"></div>
+    <a href="https://gustavin37-ui.github.io/cuadrante-2026/" target="_blank" class="nav-item" style="text-decoration: none; color: var(--accent);">
+      <span class="nav-icon">📅</span> Acceso Cuadrante 2026
+    </a>
+  `;
 
   nav.innerHTML = html;
 
@@ -1366,7 +1374,7 @@ window.renderPage = function(key) {
   if (!page) return;
 
   document.getElementById('pageTitle').textContent = page.title || key;
-  document.getElementById('pageMeta').textContent = page.meta || '';
+  document.getElementById('pageMeta').textContent = key === 'home' ? '' : (page.meta || '');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.target === key));
 
   let html = '';
