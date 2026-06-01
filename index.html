@@ -7,6 +7,8 @@
 
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1122,7 +1124,7 @@ async function initApp() {
         pageData.sections.push({
           title: 'Notas y Observaciones',
           type: 'note',
-          body: pageData.notes.map(n => `<p>${linkify(n)}</p>`).join('')
+          body: pageData.notes.map(n => `<p>${DOMPurify.sanitize(linkify(n))}</p>`).join('')
         });
         delete pageData.notes;
         migrationPromises.push(setDoc(doc(db, "guias_ipc", d.id), pageData));
@@ -1203,10 +1205,10 @@ window.exportarTodoAPDF = function() {
       } else if (sec.type === 'cards') {
         printHtml += `<h3 style="color:#2d3743; margin-top:25px; margin-bottom:12px; font-size:16px;">${escapeHTML(sec.title)}</h3>`;
         (sec.cards || []).forEach(card => {
-          printHtml += `<div style="border:1px solid #aaa;border-radius:6px;padding:15px;margin-bottom:15px;page-break-inside:avoid;background:#fefefe;"><h4 style="margin:0 0 10px 0;color:#1a2128;font-size:14px;border-bottom:1px solid #eee;padding-bottom:5px;">${escapeHTML(card.title)}</h4><div style="font-size:13px;color:#333;line-height:1.5;">${card.body}</div></div>`;
+          printHtml += `<div style="border:1px solid #aaa;border-radius:6px;padding:15px;margin-bottom:15px;page-break-inside:avoid;background:#fefefe;"><h4 style="margin:0 0 10px 0;color:#1a2128;font-size:14px;border-bottom:1px solid #eee;padding-bottom:5px;">${escapeHTML(card.title)}</h4><div style="font-size:13px;color:#333;line-height:1.5;">${DOMPurify.sanitize(card.body)}</div></div>`;
         });
       } else if (sec.type === 'note') {
-        printHtml += `<div style="margin-top:20px;padding:12px;background:#fffcf0;border-left:4px solid #d4af37;font-size:12px;page-break-inside:avoid;"><strong style="display:block;margin-bottom:5px; color:#1a2128; font-size:14px;">📌 ${escapeHTML(sec.title)}</strong><div style="margin:0; font-size:13px; color:#333; line-height:1.5;">${sec.body || ''}</div></div>`;
+        printHtml += `<div style="margin-top:20px;padding:12px;background:#fffcf0;border-left:4px solid #d4af37;font-size:12px;page-break-inside:avoid;"><strong style="display:block;margin-bottom:5px; color:#1a2128; font-size:14px;">📌 ${escapeHTML(sec.title)}</strong><div style="margin:0; font-size:13px; color:#333; line-height:1.5;">${DOMPurify.sanitize(sec.body || '')}</div></div>`;
       }
     });
     printHtml += `</div>`;
@@ -1305,8 +1307,8 @@ window.renderSidebar = function() {
 function smartFormat(text) {
   if (!text) return '';
   const str = String(text);
-  if (/<[a-z][\s\S]*>/i.test(str)) return str;
-  return linkify(str);
+  if (/<[a-z][\s\S]*>/i.test(str)) return DOMPurify.sanitize(str);
+  return DOMPurify.sanitize(linkify(str));
 }
 
 function renderTable(headers, rows, pageKey, sectionIndex) {
@@ -1358,7 +1360,7 @@ function renderCards(cards, pageKey, sectionIndex) {
         <button class="btn-action-ui" onclick="eliminarCard('${pageKey}',${sectionIndex},${i})" title="Eliminar">🗑️</button>
       </div>
       <h4>${escapeHTML(c.title)}</h4>
-      <div class="ql-editor">${c.body}</div>
+      <div class="ql-editor">${DOMPurify.sanitize(c.body)}</div>
     </div>`;
   }
   html += '</div>';
@@ -1372,7 +1374,7 @@ function renderNoteSection(sec, pageKey, sectionIndex) {
       <div class="admin-only" style="position:absolute; top:8px; right:12px; gap:4px; z-index:10; display:flex;">
         <button class="btn-action-ui" onclick="editarNota('${pageKey}',${sectionIndex})" title="Editar Nota" style="background:var(--bg-card); border:1px solid var(--border); padding: 4px 8px; font-size: 11px;">✏️ Editar</button>
       </div>
-      <div class="ql-editor" style="padding:0; min-height:auto;">${sec.body || ''}</div>
+      <div class="ql-editor" style="padding:0; min-height:auto;">${DOMPurify.sanitize(sec.body || '')}</div>
     </div>
   `;
 }
@@ -1537,8 +1539,8 @@ function renderSearchResults(query) {
         for (const it of items) {
           html += '<tr>' + it.row.map(cell => {
             const empty = cell === '' || cell === null || cell === undefined;
-            const linked = linkify(cell);
-            let finalCell = highlightInLinkedHtml(linked, term);
+            const safeCell = smartFormat(cell);
+            let finalCell = highlightInLinkedHtml(safeCell, term);
             if (cell === 'CHROME') finalCell = '<span class="pill chrome">CHROME</span>';
             else if (cell === 'EDGE') finalCell = '<span class="pill edge">EDGE</span>';
             return `<td${empty ? ' class="muted"' : ''}>${finalCell}</td>`;
@@ -1548,8 +1550,8 @@ function renderSearchResults(query) {
       } else {
         html += `<h4 style="font-size:11px;color:var(--text-dim);margin:10px 0 6px;font-weight:500;">${escapeHTML(secName)}</h4>`;
         for (const it of items) {
-          if (it.type === 'card') html += `<div class="card" style="width:100%;"><h4>${escapeHTML(it.title)}</h4><div class="ql-editor">${highlightInLinkedHtml(it.body, term)}</div></div>`;
-          else if (it.type === 'note') html += `<div class="notes"><p>${highlightInLinkedHtml(it.body, term)}</p></div>`;
+          if (it.type === 'card') html += `<div class="card" style="width:100%;"><h4>${escapeHTML(it.title)}</h4><div class="ql-editor">${highlightInLinkedHtml(DOMPurify.sanitize(it.body || ''), term)}</div></div>`;
+          else if (it.type === 'note') html += `<div class="notes">${highlightInLinkedHtml(DOMPurify.sanitize(it.body || ''), term)}</div>`;
         }
       }
     }
@@ -1961,7 +1963,7 @@ window.gestionarMenu = function() {
   html += '</div>';
   html += `<button onclick="añadirFilaMenu()" class="btn btn-ghost btn-sm" style="margin-top:12px;border-style:dashed;">+ Nueva Categoría</button>`;
   document.getElementById('modalBody').innerHTML = html;
- 
+  
     abrirModal('bulk'); 
 };
 
