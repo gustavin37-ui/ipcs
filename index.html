@@ -8,7 +8,6 @@
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -986,14 +985,15 @@ const appCheck = initializeAppCheck(app, {
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+// Variables encapsuladas en el módulo
 let LOCAL_DATA = {};
 let SEARCH_INDEX = [];
 let currentEditPage = null;
 let currentEditSection = null;
 let currentEditIndex = null;
 let currentEditType = null;
-window.currentQuill = null;
-window.currentTableQuills = {};
+let currentQuill = null;
+let currentTableQuills = {};
 
 /* ============================================================
    TOAST SYSTEM
@@ -1173,7 +1173,7 @@ function renderSkeleton() {
 /* ============================================================
    PDF EXPORT
    ============================================================ */
-window.exportarTodoAPDF = function() {
+function exportarTodoAPDF() {
   const printDiv = document.createElement('div');
   printDiv.id = 'print-container';
   printDiv.style.cssText = 'background: white; color: black; font-family: sans-serif; padding: 20px;';
@@ -1224,29 +1224,26 @@ window.exportarTodoAPDF = function() {
     document.body.removeChild(printDiv);
     document.head.removeChild(style);
   }, 300);
-};
+}
 
 /* ============================================================
    RENDERIZADO DE SIDEBAR (SISTEMA DE CARPETAS)
    ============================================================ */
-window.renderSidebar = function() {
+function renderSidebar() {
   const nav = document.getElementById('nav');
   let html = `
     <div class="nav-section">Navegación</div>
-    <div class="nav-item ${currentPage === 'home' ? 'active' : ''}" data-target="home">
+    <div class="nav-item ${currentPage === 'home' ? 'active' : ''}" data-action="navHome">
       <span class="nav-icon">🏠</span> Inicio
     </div>
   `;
   
   const homeCards = LOCAL_DATA['home']?.cards || [];
-  
-  // Agrupar tarjetas por el nuevo campo "group"
   const groups = { 'root': [] };
   homeCards.forEach(c => {
     const g = (c.group || '').trim();
-    if (g === '') {
-      groups['root'].push(c);
-    } else {
+    if (g === '') groups['root'].push(c);
+    else {
       if (!groups[g]) groups[g] = [];
       groups[g].push(c);
     }
@@ -1256,15 +1253,12 @@ window.renderSidebar = function() {
     html += `<div class="nav-section">Categorías</div>`;
   }
 
-  // 1. Renderizar primero las que no están en ninguna carpeta
   groups['root'].forEach(c => {
-    html += `<div class="nav-item ${currentPage === c.id ? 'active' : ''}" data-target="${c.id}"><span class="nav-icon">${escapeHTML(c.icon)}</span> ${escapeHTML(c.title)}</div>`;
+    html += `<div class="nav-item ${currentPage === c.id ? 'active' : ''}" data-action="navGo" data-target="${c.id}"><span class="nav-icon">${escapeHTML(c.icon)}</span> ${escapeHTML(c.title)}</div>`;
   });
 
-// 2. Renderizar los desplegables de subcategorías
   for (const g in groups) {
     if (g === 'root') continue;
-    // Miramos si la página actual está dentro de esta carpeta para dejarla abierta
     const hasActive = groups[g].some(c => c.id === currentPage);
     html += `
       <details class="nav-group" ${hasActive ? 'open' : ''}>
@@ -1272,12 +1266,11 @@ window.renderSidebar = function() {
         <div class="nav-group-items">
     `;
     groups[g].forEach(c => {
-      html += `<div class="nav-item ${currentPage === c.id ? 'active' : ''}" data-target="${c.id}"><span class="nav-icon">${escapeHTML(c.icon)}</span> ${escapeHTML(c.title)}</div>`;
+      html += `<div class="nav-item ${currentPage === c.id ? 'active' : ''}" data-action="navGo" data-target="${c.id}"><span class="nav-icon">${escapeHTML(c.icon)}</span> ${escapeHTML(c.title)}</div>`;
     });
     html += `</div></details>`;
   }
 
-  //  Añadimos la sección estática de Accesos Rápidos
   html += `
     <div style="margin-top: 15px; border-top: 1px solid var(--border-soft); padding-top: 8px;"></div>
     <a href="https://gustavin37-ui.github.io/cuadrante-2026/" target="_blank" class="nav-item" style="text-decoration: none; color: var(--accent);">
@@ -1286,20 +1279,7 @@ window.renderSidebar = function() {
   `;
 
   nav.innerHTML = html;
-
-  nav.querySelectorAll('.nav-item').forEach(n => {
-    n.addEventListener('click', () => {
-      currentPage = n.dataset.target;
-      document.getElementById('searchInput').value = '';
-      document.getElementById('searchClear').classList.remove('visible');
-      renderPage(currentPage);
-      renderSidebar();
-      if (window.innerWidth <= 720) {
-        document.getElementById('app').classList.remove('sidebar-open');
-      }
-    });
-  });
-};
+}
 
 /* ============================================================
    RENDERIZADO DE PÁGINA
@@ -1337,14 +1317,14 @@ function renderTable(headers, rows, pageKey, sectionIndex) {
       html += `<td${empty ? ' class="muted"' : ''}><div class="${/<[a-z][\s\S]*>/i.test(cellStr) ? 'ql-editor' : ''}">${finalCell}</div></td>`;
     }
     html += `<td class="admin-only" style="text-align:right;vertical-align:middle;white-space:nowrap;">
-      <button class="btn-action-ui" onclick="moverFila('${pageKey}',${sectionIndex},${i},-1)" title="Subir">⬆️</button>
-      <button class="btn-action-ui" onclick="moverFila('${pageKey}',${sectionIndex},${i},1)" title="Bajar">⬇️</button>
-      <button class="btn-action-ui" onclick="editarFila('${pageKey}',${sectionIndex},${i})" title="Editar" style="margin-left: 4px;">✏️</button>
-      <button class="btn-action-ui" onclick="eliminarFila('${pageKey}',${sectionIndex},${i})" title="Eliminar">🗑️</button>
+      <button class="btn-action-ui" data-action="moverFila" data-page="${pageKey}" data-sec="${sectionIndex}" data-idx="${i}" data-dir="-1" title="Subir">⬆️</button>
+      <button class="btn-action-ui" data-action="moverFila" data-page="${pageKey}" data-sec="${sectionIndex}" data-idx="${i}" data-dir="1" title="Bajar">⬇️</button>
+      <button class="btn-action-ui" data-action="editarFila" data-page="${pageKey}" data-sec="${sectionIndex}" data-idx="${i}" title="Editar" style="margin-left: 4px;">✏️</button>
+      <button class="btn-action-ui" data-action="eliminarFila" data-page="${pageKey}" data-sec="${sectionIndex}" data-idx="${i}" title="Eliminar">🗑️</button>
     </td></tr>`;
   }
   html += '</tbody></table></div>';
-  html += `<button class="admin-only btn btn-ghost btn-sm" style="margin-bottom:12px;" onclick="añadirFilaNueva('${pageKey}',${sectionIndex})">+ Añadir Fila</button>`;
+  html += `<button class="admin-only btn btn-ghost btn-sm" style="margin-bottom:12px;" data-action="añadirFilaNueva" data-page="${pageKey}" data-sec="${sectionIndex}">+ Añadir Fila</button>`;
   return html;
 }
 
@@ -1354,17 +1334,17 @@ function renderCards(cards, pageKey, sectionIndex) {
     const c = cards[i];
     html += `<div class="card" style="position:relative;padding-top:22px;">
       <div class="admin-only" style="position:absolute;top:9px;right:10px;gap:3px;z-index:10;display:flex;align-items:center;">
-        <button class="btn-action-ui" onclick="moverCard('${pageKey}',${sectionIndex},${i},-1)" title="Subir">⬆️</button>
-        <button class="btn-action-ui" onclick="moverCard('${pageKey}',${sectionIndex},${i},1)" title="Bajar">⬇️</button>
-        <button class="btn-action-ui" onclick="editarCard('${pageKey}',${sectionIndex},${i})" title="Editar" style="margin-left: 4px;">✏️</button>
-        <button class="btn-action-ui" onclick="eliminarCard('${pageKey}',${sectionIndex},${i})" title="Eliminar">🗑️</button>
+        <button class="btn-action-ui" data-action="moverCard" data-page="${pageKey}" data-sec="${sectionIndex}" data-idx="${i}" data-dir="-1" title="Subir">⬆️</button>
+        <button class="btn-action-ui" data-action="moverCard" data-page="${pageKey}" data-sec="${sectionIndex}" data-idx="${i}" data-dir="1" title="Bajar">⬇️</button>
+        <button class="btn-action-ui" data-action="editarCard" data-page="${pageKey}" data-sec="${sectionIndex}" data-idx="${i}" title="Editar" style="margin-left: 4px;">✏️</button>
+        <button class="btn-action-ui" data-action="eliminarCard" data-page="${pageKey}" data-sec="${sectionIndex}" data-idx="${i}" title="Eliminar">🗑️</button>
       </div>
       <h4>${escapeHTML(c.title)}</h4>
       <div class="ql-editor">${DOMPurify.sanitize(c.body)}</div>
     </div>`;
   }
   html += '</div>';
-  html += `<button class="admin-only btn btn-ghost btn-sm" style="margin-bottom:12px;" onclick="añadirCardNueva('${pageKey}',${sectionIndex})">+ Añadir Tarjeta</button>`;
+  html += `<button class="admin-only btn btn-ghost btn-sm" style="margin-bottom:12px;" data-action="añadirCardNueva" data-page="${pageKey}" data-sec="${sectionIndex}">+ Añadir Tarjeta</button>`;
   return html;
 }
 
@@ -1372,14 +1352,14 @@ function renderNoteSection(sec, pageKey, sectionIndex) {
   return `
     <div class="notes" style="position:relative;">
       <div class="admin-only" style="position:absolute; top:8px; right:12px; gap:4px; z-index:10; display:flex;">
-        <button class="btn-action-ui" onclick="editarNota('${pageKey}',${sectionIndex})" title="Editar Nota" style="background:var(--bg-card); border:1px solid var(--border); padding: 4px 8px; font-size: 11px;">✏️ Editar</button>
+        <button class="btn-action-ui" data-action="editarNota" data-page="${pageKey}" data-sec="${sectionIndex}" title="Editar Nota" style="background:var(--bg-card); border:1px solid var(--border); padding: 4px 8px; font-size: 11px;">✏️ Editar</button>
       </div>
       <div class="ql-editor" style="padding:0; min-height:auto;">${DOMPurify.sanitize(sec.body || '')}</div>
     </div>
   `;
 }
 
-window.renderPage = function(key) {
+function renderPage(key) {
   const page = LOCAL_DATA[key];
   if (!page) return;
 
@@ -1396,60 +1376,50 @@ window.renderPage = function(key) {
           <h2>Bienvenido al Manual Técnico</h2>
           <p>Guía de herramientas, procedimientos y recursos UNIR</p>
         </div>
-        <button class="admin-only btn btn-secondary btn-sm" onclick="gestionarMenu()">⚙️ Administrar Categorías</button>
+        <button class="admin-only btn btn-secondary btn-sm" data-action="gestionarMenu">⚙️ Administrar Categorías</button>
       </div>
       <div class="hero-actions">
-        <button class="btn btn-info btn-sm" onclick="exportarTodoAPDF()">📄 Exportar PDF</button>
+        <button class="btn btn-info btn-sm" data-action="exportarTodoAPDF">📄 Exportar PDF</button>
       </div>
     </div>
     <div class="home-grid page-enter" style="animation-delay:0.05s;">`;
     for (const c of (page.cards || [])) {
-      html += `<div class="home-card" data-target="${c.id}"><div class="home-card-icon">${c.icon}</div><h3>${escapeHTML(c.title)}</h3><p>${escapeHTML(c.desc)}</p></div>`;
+      html += `<div class="home-card" data-action="navGo" data-target="${c.id}"><div class="home-card-icon">${c.icon}</div><h3>${escapeHTML(c.title)}</h3><p>${escapeHTML(c.desc)}</p></div>`;
     }
     html += '</div>';
     document.getElementById('content').innerHTML = html;
-    document.querySelectorAll('.home-card').forEach(card => {
-      card.addEventListener('click', () => {
-        currentPage = card.dataset.target;
-        renderPage(currentPage);
-        renderSidebar();
-      });
-    });
     return;
   }
 
   // Breadcrumb for non-home pages
   html += `<div class="breadcrumb page-enter">
-    <span onclick="currentPage='home';renderPage('home');renderSidebar();">Inicio</span>
+    <span data-action="navHome">Inicio</span>
     <span class="breadcrumb-sep">›</span>
     <span style="color:var(--text-dim);cursor:default;">${escapeHTML(page.title || key)}</span>
   </div>`;
 
-for (let s = 0; s < (page.sections || []).length; s++) {
+  for (let s = 0; s < (page.sections || []).length; s++) {
     const sec = page.sections[s];
     const titleText = (sec.title || '').trim();
     const hasTitle = titleText.length > 0;
     
-    // Si no hay título, ocultamos la barra vertical. Si es nota, le ponemos la chincheta al principal.
     let titleHtml = '<span></span>';
     if (hasTitle) {
       titleHtml = `<span class="section-title-left">${sec.type === 'note' ? '📌 ' : ''}${escapeHTML(titleText)}</span>`;
     }
-
-    // Si no hay título, quitamos el borde y reducimos el margen para que los usuarios normales no vean "huecos" vacíos
     const headerStyle = !hasTitle ? 'border-bottom:none; margin-bottom:6px; padding-bottom:0;' : '';
 
     html += `<div class="section page-enter" style="animation-delay:${0.04 * s}s;">
       <div class="section-title" style="${headerStyle}">
         ${titleHtml}
         <div class="admin-only" style="gap:8px;align-items:center;display:flex; ${!hasTitle ? 'margin-left:auto;' : ''}">
-          <button class="btn-action-ui" style="font-size:14px;" onclick="moverSeccion('${key}',${s},-1)" title="Subir Sección">⬆️</button>
-          <button class="btn-action-ui" style="font-size:14px; margin-right:4px;" onclick="moverSeccion('${key}',${s},1)" title="Bajar Sección">⬇️</button>
+          <button class="btn-action-ui" style="font-size:14px;" data-action="moverSeccion" data-page="${key}" data-sec="${s}" data-dir="-1" title="Subir Sección">⬆️</button>
+          <button class="btn-action-ui" style="font-size:14px; margin-right:4px;" data-action="moverSeccion" data-page="${key}" data-sec="${s}" data-dir="1" title="Bajar Sección">⬇️</button>
           
-          ${sec.type === 'table' ? `<button class="btn btn-ghost btn-sm" onclick="editarTablaCompleta('${key}',${s})">📝 Editar Datos</button>` : ''}
-          ${sec.type !== 'note' ? `<button class="btn btn-ghost btn-sm" onclick="gestionarTabla('${key}',${s})">⚙️ Config.</button>` : ''}
+          ${sec.type === 'table' ? `<button class="btn btn-ghost btn-sm" data-action="editarTablaCompleta" data-page="${key}" data-sec="${s}">📝 Editar Datos</button>` : ''}
+          ${sec.type !== 'note' ? `<button class="btn btn-ghost btn-sm" data-action="gestionarTabla" data-page="${key}" data-sec="${s}">⚙️ Config.</button>` : ''}
           
-          <button class="btn btn-ghost btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="eliminarSeccion('${key}',${s})" title="Eliminar Sección">🗑️</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--danger);border-color:var(--danger);" data-action="eliminarSeccion" data-page="${key}" data-sec="${s}" title="Eliminar Sección">🗑️</button>
         </div>
       </div>`;
       
@@ -1464,12 +1434,12 @@ for (let s = 0; s < (page.sections || []).length; s++) {
     <button class="btn btn-ghost" style="width:100%;border-style:dashed;font-size:12px;letter-spacing:1px;text-transform:uppercase;" 
       onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';" 
       onmouseout="this.style.borderColor='';this.style.color='';"
-      onclick="añadirSeccionNueva('${key}')">➕ Añadir Nueva Sección</button>
+      data-action="añadirSeccionNueva" data-page="${key}">➕ Añadir Nueva Sección</button>
   </div>`;
 
   document.getElementById('content').innerHTML = html;
   document.getElementById('main').scrollTop = 0;
-};
+}
 
 /* ============================================================
    BÚSQUEDA GLOBAL
@@ -1521,7 +1491,7 @@ function renderSearchResults(query) {
   for (const [pageKey, group] of Object.entries(groups)) {
     html += `<div class="result-section page-enter">
       <div class="section-title">
-        <span class="result-tag section-title-left" data-go="${pageKey}">${escapeHTML(group.pageTitle)}</span>
+        <span class="result-tag section-title-left" data-action="navGo" data-target="${pageKey}">${escapeHTML(group.pageTitle)}</span>
         <span style="color:var(--text-muted);font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;font-family:inherit;">${group.items.length} coincidencia${group.items.length !== 1 ? 's' : ''}</span>
       </div>`;
     const bySection = {};
@@ -1558,15 +1528,6 @@ function renderSearchResults(query) {
     html += '</div>';
   }
   document.getElementById('content').innerHTML = html;
-  document.querySelectorAll('.result-tag').forEach(t => {
-    t.addEventListener('click', () => {
-      document.getElementById('searchInput').value = '';
-      document.getElementById('searchClear').classList.remove('visible');
-      currentPage = t.dataset.go;
-      renderPage(currentPage);
-      renderSidebar();
-    });
-  });
 }
 
 function highlightInLinkedHtml(html, term) {
@@ -1681,7 +1642,8 @@ document.addEventListener('mouseup', async e => {
 /* ============================================================
    REORDENACIÓN DE ELEMENTOS
    ============================================================ */
-window.moverSeccion = async function(pageKey, secIdx, dir) {
+async function moverSeccion(pageKey, secIdx, dir) {
+  if (!auth.currentUser) return toast('Acción bloqueada: No estás autenticado.', 'error');
   const sections = LOCAL_DATA[pageKey].sections;
   if (secIdx + dir < 0 || secIdx + dir >= sections.length) return;
   const temp = sections[secIdx];
@@ -1690,7 +1652,8 @@ window.moverSeccion = async function(pageKey, secIdx, dir) {
   await guardarEnFirebase(pageKey);
 }
 
-window.moverCard = async function(pageKey, secIdx, cardIdx, dir) {
+async function moverCard(pageKey, secIdx, cardIdx, dir) {
+  if (!auth.currentUser) return toast('Acción bloqueada: No estás autenticado.', 'error');
   const cards = LOCAL_DATA[pageKey].sections[secIdx].cards;
   if (cardIdx + dir < 0 || cardIdx + dir >= cards.length) return;
   const temp = cards[cardIdx];
@@ -1699,7 +1662,8 @@ window.moverCard = async function(pageKey, secIdx, cardIdx, dir) {
   await guardarEnFirebase(pageKey);
 }
 
-window.moverFila = async function(pageKey, secIdx, rowIdx, dir) {
+async function moverFila(pageKey, secIdx, rowIdx, dir) {
+  if (!auth.currentUser) return toast('Acción bloqueada: No estás autenticado.', 'error');
   const rows = LOCAL_DATA[pageKey].sections[secIdx].rows;
   if (rowIdx + dir < 0 || rowIdx + dir >= rows.length) return;
   const temp = rows[rowIdx];
@@ -1738,14 +1702,14 @@ function abrirModal(mode = 'normal') {
 }
 function cerrarModal() {
   modal.style.display = 'none';
-  window.currentQuill = null;
-  window.currentTableQuills = {};
+  currentQuill = null;
+  currentTableQuills = {};
 }
 document.getElementById('closeModalBtn').addEventListener('click', cerrarModal);
 document.getElementById('cancelModalBtn').addEventListener('click', cerrarModal);
 
 // ---- SECCIONES ----
-window.añadirSeccionNueva = function(pageKey) {
+function añadirSeccionNueva(pageKey) {
   currentEditPage = pageKey; currentEditType = 'new_section';
   document.getElementById('modalTitle').textContent = 'Añadir Nueva Sección';
   document.getElementById('modalBody').innerHTML = `
@@ -1758,18 +1722,19 @@ window.añadirSeccionNueva = function(pageKey) {
       </select>
     </div>`;
   abrirModal('normal');
-};
+}
 
-window.eliminarSeccion = async function(pageKey, sectionIndex) {
+async function eliminarSeccion(pageKey, sectionIndex) {
+  if (!auth.currentUser) return toast('Acción bloqueada: No estás autenticado.', 'error');
   const ok = await confirmDialog('Eliminar sección', '¿Eliminar TODA esta sección y sus datos? Esta acción no se puede deshacer.');
   if (!ok) return;
   LOCAL_DATA[pageKey].sections.splice(sectionIndex, 1);
   await guardarEnFirebase(pageKey);
   toast('Sección eliminada', 'success');
-};
+}
 
 // ---- NOTAS ENRIQUECIDAS ----
-window.editarNota = function(pageKey, sectionIndex) {
+function editarNota(pageKey, sectionIndex) {
   currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditType = 'note';
   const sec = LOCAL_DATA[pageKey].sections[sectionIndex];
   document.getElementById('modalTitle').textContent = 'Editar Sección de Notas';
@@ -1778,13 +1743,13 @@ window.editarNota = function(pageKey, sectionIndex) {
     <div class="modal-field" style="flex:1;display:flex;flex-direction:column;min-height:0;"><label>Cuerpo de la Nota</label><div id="noteBodyEditor" class="quill-card-editor"></div></div>`;
   abrirModal('fullscreen');
   setTimeout(() => {
-    window.currentQuill = new Quill('#noteBodyEditor', { theme: 'snow', modules: { toolbar: [['bold','italic','underline','strike'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],[{'align':[]}],['image', 'link','clean']] } });
-    window.currentQuill.clipboard.dangerouslyPasteHTML(sec.body || '');
+    currentQuill = new Quill('#noteBodyEditor', { theme: 'snow', modules: { toolbar: [['bold','italic','underline','strike'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],[{'align':[]}],['image', 'link','clean']] } });
+    currentQuill.clipboard.dangerouslyPasteHTML(sec.body || '');
   }, 50);
-};
+}
 
 // ---- EDICIÓN MASIVA ----
-window.editarTablaCompleta = function(pageKey, sectionIndex) {
+function editarTablaCompleta(pageKey, sectionIndex) {
   currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditType = 'bulk_table';
   const sec = LOCAL_DATA[pageKey].sections[sectionIndex];
   const headers = sec.headers || [], rows = sec.rows || [];
@@ -1803,16 +1768,16 @@ window.editarTablaCompleta = function(pageKey, sectionIndex) {
       const val = rowObj[cIdx] !== undefined ? rowObj[cIdx] : '';
       html += `<td style="padding:0;border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);"><div class="bulk-input" contenteditable="true" data-col="${cIdx}">${val}</div></td>`;
     });
-    html += `<td style="padding:4px;text-align:center;border-bottom:1px solid var(--border-soft);"><button onclick="this.closest('tr').remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;" title="Eliminar">🗑️</button></td></tr>`;
+    html += `<td style="padding:4px;text-align:center;border-bottom:1px solid var(--border-soft);"><button data-action="removeTr" style="color:var(--danger);background:transparent;border:none;cursor:pointer;" title="Eliminar">🗑️</button></td></tr>`;
   });
   html += `</tbody></table></div>
-    <button onclick="añadirFilaBulk()" class="btn btn-ghost btn-sm">+ Añadir Fila</button>
+    <button data-action="añadirFilaBulk" class="btn btn-ghost btn-sm">+ Añadir Fila</button>
     <div style="margin-top:8px;font-size:11px;color:var(--info);">💡 Los estilos (negritas, enlaces) creados individualmente se conservan.</div>`;
   document.getElementById('modalBody').innerHTML = html;
   abrirModal('bulk');
-};
+}
 
-window.añadirFilaBulk = function() {
+function añadirFilaBulk() {
   const sec = LOCAL_DATA[currentEditPage].sections[currentEditSection];
   const headers = sec.headers || [];
   const tbody = document.getElementById('bulkEditTbody');
@@ -1822,13 +1787,13 @@ window.añadirFilaBulk = function() {
   headers.forEach((_, cIdx) => {
     html += `<td style="padding:0;border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);"><div class="bulk-input" contenteditable="true" data-col="${cIdx}"></div></td>`;
   });
-  html += `<td style="padding:4px;text-align:center;border-bottom:1px solid var(--border-soft);"><button onclick="this.closest('tr').remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;">🗑️</button></td>`;
+  html += `<td style="padding:4px;text-align:center;border-bottom:1px solid var(--border-soft);"><button data-action="removeTr" style="color:var(--danger);background:transparent;border:none;cursor:pointer;">🗑️</button></td>`;
   tr.innerHTML = html;
   tbody.appendChild(tr);
-};
+}
 
 // ---- CONFIGURAR TABLA ----
-window.gestionarTabla = function(pageKey, sectionIndex) {
+function gestionarTabla(pageKey, sectionIndex) {
   currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditType = 'table_config';
   const sec = LOCAL_DATA[pageKey].sections[sectionIndex];
   document.getElementById('modalTitle').textContent = 'Configurar Estructura';
@@ -1839,25 +1804,25 @@ window.gestionarTabla = function(pageKey, sectionIndex) {
       html += `<div class="col-edit-row" data-original-index="${idx}" style="display:flex;gap:8px;align-items:center;">
         <span style="color:var(--text-muted);font-size:11px;width:20px;font-family:monospace;">#${idx+1}</span>
         <input type="text" class="col-name" value="${escapeHTML(h)}" style="flex:1;">
-        <button onclick="this.parentElement.remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:16px;">🗑️</button>
+        <button data-action="removeParent" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:16px;">🗑️</button>
       </div>`;
     });
-    html += `</div><button onclick="añadirColumnaTabla()" class="btn btn-ghost btn-sm" style="margin-top:10px;">+ Añadir Columna</button></div>`;
+    html += `</div><button data-action="añadirColumnaTabla" class="btn btn-ghost btn-sm" style="margin-top:10px;">+ Añadir Columna</button></div>`;
   }
   document.getElementById('modalBody').innerHTML = html;
   abrirModal('normal');
-};
+}
 
-window.añadirColumnaTabla = function() {
+function añadirColumnaTabla() {
   const div = document.createElement('div');
   div.className = 'col-edit-row';
   div.style.cssText = 'display:flex;gap:8px;align-items:center;animation:fadeIn 0.2s ease;';
-  div.innerHTML = `<span style="color:var(--success);font-size:12px;width:20px;">✨</span><input type="text" class="col-name" placeholder="Nueva Columna" style="flex:1;"><button onclick="this.parentElement.remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:16px;">🗑️</button>`;
+  div.innerHTML = `<span style="color:var(--success);font-size:12px;width:20px;">✨</span><input type="text" class="col-name" placeholder="Nueva Columna" style="flex:1;"><button data-action="removeParent" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:16px;">🗑️</button>`;
   document.getElementById('columnList').appendChild(div);
-};
+}
 
 // ---- FILAS ----
-window.editarFila = function(pageKey, sectionIndex, rowIndex) {
+function editarFila(pageKey, sectionIndex, rowIndex) {
   currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditIndex = rowIndex; currentEditType = 'row';
   const section = LOCAL_DATA[pageKey].sections[sectionIndex];
   const headers = section.headers || [], rowObj = section.rows[rowIndex] || {};
@@ -1869,16 +1834,16 @@ window.editarFila = function(pageKey, sectionIndex, rowIndex) {
   document.getElementById('modalBody').innerHTML = bodyHtml;
   abrirModal('fullscreen');
   setTimeout(() => {
-    window.currentTableQuills = {};
+    currentTableQuills = {};
     headers.forEach((_, idx) => {
       const q = new Quill(`#quill-col-${idx}`, { theme: 'snow', modules: { toolbar: [['bold','italic','underline','strike'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],['image','link','clean']] } });
       q.clipboard.dangerouslyPasteHTML(rowObj[idx] !== undefined ? String(rowObj[idx]) : '');
-      window.currentTableQuills[idx] = q;
+      currentTableQuills[idx] = q;
     });
   }, 50);
-};
+}
 
-window.añadirFilaNueva = function(pageKey, sectionIndex) {
+function añadirFilaNueva(pageKey, sectionIndex) {
   currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditType = 'new_row';
   const section = LOCAL_DATA[pageKey].sections[sectionIndex], headers = section.headers || [];
   document.getElementById('modalTitle').textContent = 'Añadir Fila — Herramientas Avanzadas';
@@ -1889,23 +1854,24 @@ window.añadirFilaNueva = function(pageKey, sectionIndex) {
   document.getElementById('modalBody').innerHTML = bodyHtml;
   abrirModal('fullscreen');
   setTimeout(() => {
-    window.currentTableQuills = {};
+    currentTableQuills = {};
     headers.forEach((_, idx) => {
-      window.currentTableQuills[idx] = new Quill(`#quill-col-${idx}`, { theme: 'snow', modules: { toolbar: [['bold','italic','underline','strike'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],['image','link','clean']] } });
+      currentTableQuills[idx] = new Quill(`#quill-col-${idx}`, { theme: 'snow', modules: { toolbar: [['bold','italic','underline','strike'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],['image','link','clean']] } });
     });
   }, 50);
-};
+}
 
-window.eliminarFila = async function(pageKey, sectionIndex, rowIndex) {
+async function eliminarFila(pageKey, sectionIndex, rowIndex) {
+  if (!auth.currentUser) return toast('Acción bloqueada: No estás autenticado.', 'error');
   const ok = await confirmDialog('Eliminar fila', '¿Eliminar esta fila de forma permanente?');
   if (!ok) return;
   LOCAL_DATA[pageKey].sections[sectionIndex].rows.splice(rowIndex, 1);
   await guardarEnFirebase(pageKey);
   toast('Fila eliminada', 'success');
-};
+}
 
 // ---- CARDS ----
-window.editarCard = function(pageKey, sectionIndex, cardIndex) {
+function editarCard(pageKey, sectionIndex, cardIndex) {
   currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditIndex = cardIndex; currentEditType = 'card';
   const card = LOCAL_DATA[pageKey].sections[sectionIndex].cards[cardIndex];
   document.getElementById('modalTitle').textContent = 'Editar Tarjeta / Plantilla';
@@ -1914,12 +1880,12 @@ window.editarCard = function(pageKey, sectionIndex, cardIndex) {
     <div class="modal-field" style="flex:1;display:flex;flex-direction:column;min-height:0;"><label>Cuerpo del Mensaje</label><div id="cardBodyEditor" class="quill-card-editor"></div></div>`;
   abrirModal('fullscreen');
   setTimeout(() => {
-    window.currentQuill = new Quill('#cardBodyEditor', { theme: 'snow', modules: { toolbar: [['bold','italic','underline','strike'],['blockquote','code-block'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],[{'align':[]}],['image', 'link','clean']] } });
-    window.currentQuill.clipboard.dangerouslyPasteHTML(card.body || '');
+    currentQuill = new Quill('#cardBodyEditor', { theme: 'snow', modules: { toolbar: [['bold','italic','underline','strike'],['blockquote','code-block'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],[{'align':[]}],['image', 'link','clean']] } });
+    currentQuill.clipboard.dangerouslyPasteHTML(card.body || '');
   }, 50);
-};
+}
 
-window.añadirCardNueva = function(pageKey, sectionIndex) {
+function añadirCardNueva(pageKey, sectionIndex) {
   currentEditPage = pageKey; currentEditSection = sectionIndex; currentEditType = 'new_card';
   document.getElementById('modalTitle').textContent = 'Añadir Nueva Tarjeta';
   document.getElementById('modalBody').innerHTML = `
@@ -1927,20 +1893,21 @@ window.añadirCardNueva = function(pageKey, sectionIndex) {
     <div class="modal-field" style="flex:1;display:flex;flex-direction:column;min-height:0;"><label>Cuerpo del Mensaje</label><div id="cardBodyEditor" class="quill-card-editor"></div></div>`;
   abrirModal('fullscreen');
   setTimeout(() => {
-    window.currentQuill = new Quill('#cardBodyEditor', { theme: 'snow', placeholder: 'Escribe el contenido aquí...', modules: { toolbar: [['bold','italic','underline','strike'],['blockquote','code-block'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],[{'align':[]}],['image', 'link','clean']] } });
+    currentQuill = new Quill('#cardBodyEditor', { theme: 'snow', placeholder: 'Escribe el contenido aquí...', modules: { toolbar: [['bold','italic','underline','strike'],['blockquote','code-block'],[{'list':'ordered'},{'list':'bullet'}],[{'color':[]},{'background':[]}],[{'align':[]}],['image', 'link','clean']] } });
   }, 50);
-};
+}
 
-window.eliminarCard = async function(pageKey, sectionIndex, cardIndex) {
+async function eliminarCard(pageKey, sectionIndex, cardIndex) {
+  if (!auth.currentUser) return toast('Acción bloqueada: No estás autenticado.', 'error');
   const ok = await confirmDialog('Eliminar tarjeta', '¿Eliminar esta tarjeta de forma permanente?');
   if (!ok) return;
   LOCAL_DATA[pageKey].sections[sectionIndex].cards.splice(cardIndex, 1);
   await guardarEnFirebase(pageKey);
   toast('Tarjeta eliminada', 'success');
-};
+}
 
 // ---- MENÚ ----
-window.gestionarMenu = function() {
+function gestionarMenu() {
   currentEditType = 'menu_manager';
   document.getElementById('modalTitle').textContent = 'Administrar Menú Lateral';
   let html = '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Añade, agrupa en carpetas, elimina o reordena las categorías usando las flechas.</div>';
@@ -1949,53 +1916,106 @@ window.gestionarMenu = function() {
   cards.forEach(c => {
     html += `<div class="menu-edit-row" style="display:flex;gap:8px;align-items:center;background:var(--bg-card);padding:8px;border-radius:var(--radius);border:1px solid var(--border);">
       <div style="display:flex;flex-direction:column;gap:2px;">
-        <button onclick="moverFilaMenu(this,-1)" style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▲</button>
-        <button onclick="moverFilaMenu(this,1)"  style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▼</button>
+        <button data-action="moverFilaMenu" data-dir="-1" style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▲</button>
+        <button data-action="moverFilaMenu" data-dir="1"  style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▼</button>
       </div>
       <input type="text" class="menu-icon"  value="${escapeHTML(c.icon)}"  style="width:40px;text-align:center;padding:5px;" title="Icono (Emoji)">
       <input type="text" class="menu-id"    value="${escapeHTML(c.id)}"    style="width:90px;padding:5px;background:rgba(0,0,0,0.2);color:var(--text-muted);" title="ID Interno" disabled>
       <input type="text" class="menu-title" value="${escapeHTML(c.title)}" style="flex:1;padding:5px;" title="Título">
       <input type="text" class="menu-group" value="${escapeHTML(c.group || '')}" style="width:110px;padding:5px; border-color:var(--accent);" placeholder="Carpeta / Grupo" title="Escribe el mismo nombre de carpeta para agrupar varias categorías">
       <input type="text" class="menu-desc"  value="${escapeHTML(c.desc || '')}"  style="flex:1.5;padding:5px;" title="Descripción">
-      <button onclick="this.parentElement.remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:15px;" title="Eliminar">🗑️</button>
+      <button data-action="removeParent" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:15px;" title="Eliminar">🗑️</button>
     </div>`;
   });
   html += '</div>';
-  html += `<button onclick="añadirFilaMenu()" class="btn btn-ghost btn-sm" style="margin-top:12px;border-style:dashed;">+ Nueva Categoría</button>`;
+  html += `<button data-action="añadirFilaMenu" class="btn btn-ghost btn-sm" style="margin-top:12px;border-style:dashed;">+ Nueva Categoría</button>`;
   document.getElementById('modalBody').innerHTML = html;
   
-    abrirModal('bulk'); 
-};
+  abrirModal('bulk'); 
+}
 
-window.añadirFilaMenu = function() {
+function añadirFilaMenu() {
   const container = document.getElementById('menuEditorList');
   const div = document.createElement('div');
   div.className = 'menu-edit-row';
   div.style.cssText = 'display:flex;gap:8px;align-items:center;background:var(--bg-card);padding:8px;border-radius:var(--radius);border:1px solid var(--border);';
   div.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:2px;">
-      <button onclick="moverFilaMenu(this,-1)" style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▲</button>
-      <button onclick="moverFilaMenu(this,1)"  style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▼</button>
+      <button data-action="moverFilaMenu" data-dir="-1" style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▲</button>
+      <button data-action="moverFilaMenu" data-dir="1"  style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">▼</button>
     </div>
     <input type="text" class="menu-icon"  placeholder="📁" style="width:40px;text-align:center;padding:5px;">
     <input type="text" class="menu-id"    placeholder="id_nuevo" style="width:90px;padding:5px;border-color:var(--info);">
     <input type="text" class="menu-title" placeholder="Título" style="flex:1;padding:5px;">
     <input type="text" class="menu-group" placeholder="Carpeta" style="width:110px;padding:5px; border-color:var(--accent);">
     <input type="text" class="menu-desc"  placeholder="Descripción..." style="flex:1.5;padding:5px;">
-    <button onclick="this.parentElement.remove()" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:15px;">🗑️</button>`;
+    <button data-action="removeParent" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:15px;">🗑️</button>`;
   container.appendChild(div);
-};
+}
 
-window.moverFilaMenu = function(btn, dir) {
+function moverFilaMenu(btn, dir) {
   const row = btn.closest('.menu-edit-row');
   if (dir === -1 && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
   else if (dir === 1 && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
-};
+}
+
+/* ============================================================
+   DELEGACIÓN DE EVENTOS GLOBAL
+   ============================================================ */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+
+  const action = btn.dataset.action;
+  const pageKey = btn.dataset.page;
+  const secIdx = parseInt(btn.dataset.sec, 10);
+  const idx = parseInt(btn.dataset.idx, 10);
+  const dir = parseInt(btn.dataset.dir, 10);
+  const targetId = btn.dataset.target;
+
+  switch(action) {
+    case 'navHome': currentPage = 'home'; renderPage('home'); renderSidebar(); break;
+    case 'navGo': 
+      currentPage = targetId; 
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchClear').classList.remove('visible');
+      renderPage(currentPage); 
+      renderSidebar(); 
+      if (window.innerWidth <= 720) document.getElementById('app').classList.remove('sidebar-open');
+      break;
+    case 'exportarTodoAPDF': exportarTodoAPDF(); break;
+    case 'gestionarMenu': gestionarMenu(); break;
+    case 'añadirSeccionNueva': añadirSeccionNueva(pageKey); break;
+    case 'eliminarSeccion': eliminarSeccion(pageKey, secIdx); break;
+    case 'editarTablaCompleta': editarTablaCompleta(pageKey, secIdx); break;
+    case 'gestionarTabla': gestionarTabla(pageKey, secIdx); break;
+    case 'moverSeccion': moverSeccion(pageKey, secIdx, dir); break;
+    case 'moverFila': moverFila(pageKey, secIdx, idx, dir); break;
+    case 'editarFila': editarFila(pageKey, secIdx, idx); break;
+    case 'eliminarFila': eliminarFila(pageKey, secIdx, idx); break;
+    case 'añadirFilaNueva': añadirFilaNueva(pageKey, secIdx); break;
+    case 'moverCard': moverCard(pageKey, secIdx, idx, dir); break;
+    case 'editarCard': editarCard(pageKey, secIdx, idx); break;
+    case 'eliminarCard': eliminarCard(pageKey, secIdx, idx); break;
+    case 'añadirCardNueva': añadirCardNueva(pageKey, secIdx); break;
+    case 'editarNota': editarNota(pageKey, secIdx); break;
+    case 'removeTr': btn.closest('tr').remove(); break;
+    case 'añadirFilaBulk': añadirFilaBulk(); break;
+    case 'removeParent': btn.parentElement.remove(); break;
+    case 'añadirColumnaTabla': añadirColumnaTabla(); break;
+    case 'moverFilaMenu': moverFilaMenu(btn, dir); break;
+    case 'añadirFilaMenu': añadirFilaMenu(); break;
+  }
+});
 
 /* ============================================================
    GUARDADO MAESTRO
    ============================================================ */
 async function guardarEnFirebase(pageKey) {
+  if (!auth.currentUser) {
+    toast('Error de seguridad: Bloqueado por falta de permisos', 'error');
+    return;
+  }
   const docRef = doc(db, "guias_ipc", pageKey);
   await setDoc(docRef, LOCAL_DATA[pageKey]);
   buildSearchIndex();
@@ -2003,6 +2023,11 @@ async function guardarEnFirebase(pageKey) {
 }
 
 document.getElementById('saveModalBtn').addEventListener('click', async () => {
+  if (!auth.currentUser) {
+    toast('Error de seguridad: Bloqueado por falta de permisos', 'error');
+    return;
+  }
+
   const btn = document.getElementById('saveModalBtn');
   btn.textContent = 'Guardando...';
   btn.disabled = true;
@@ -2031,7 +2056,7 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
     } else if (currentEditType === 'row') {
       const rowObj = {};
       (LOCAL_DATA[currentEditPage].sections[currentEditSection].headers || []).forEach((_, idx) => {
-        rowObj[idx] = window.currentTableQuills[idx].root.innerHTML;
+        rowObj[idx] = currentTableQuills[idx].root.innerHTML;
       });
       LOCAL_DATA[currentEditPage].sections[currentEditSection].rows[currentEditIndex] = rowObj;
       await guardarEnFirebase(currentEditPage);
@@ -2039,7 +2064,7 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
     } else if (currentEditType === 'new_row') {
       const rowObj = {};
       (LOCAL_DATA[currentEditPage].sections[currentEditSection].headers || []).forEach((_, idx) => {
-        rowObj[idx] = window.currentTableQuills[idx].root.innerHTML;
+        rowObj[idx] = currentTableQuills[idx].root.innerHTML;
       });
       if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].rows) LOCAL_DATA[currentEditPage].sections[currentEditSection].rows = [];
       LOCAL_DATA[currentEditPage].sections[currentEditSection].rows.push(rowObj);
@@ -2048,7 +2073,7 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
     } else if (currentEditType === 'card') {
       LOCAL_DATA[currentEditPage].sections[currentEditSection].cards[currentEditIndex] = {
         title: document.getElementById('cardTitleInput').value,
-        body: window.currentQuill.root.innerHTML
+        body: currentQuill.root.innerHTML
       };
       await guardarEnFirebase(currentEditPage);
 
@@ -2056,13 +2081,13 @@ document.getElementById('saveModalBtn').addEventListener('click', async () => {
       if (!LOCAL_DATA[currentEditPage].sections[currentEditSection].cards) LOCAL_DATA[currentEditPage].sections[currentEditSection].cards = [];
       LOCAL_DATA[currentEditPage].sections[currentEditSection].cards.push({
         title: document.getElementById('cardTitleInput').value,
-        body: window.currentQuill.root.innerHTML
+        body: currentQuill.root.innerHTML
       });
       await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'note') {
       LOCAL_DATA[currentEditPage].sections[currentEditSection].title = document.getElementById('noteTitleInput').value;
-      LOCAL_DATA[currentEditPage].sections[currentEditSection].body = window.currentQuill.root.innerHTML;
+      LOCAL_DATA[currentEditPage].sections[currentEditSection].body = currentQuill.root.innerHTML;
       await guardarEnFirebase(currentEditPage);
 
     } else if (currentEditType === 'table_config') {
