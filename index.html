@@ -5,12 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Herramientas UNIR</title>
 
+<!-- PROTECCIÓN CLICKJACKING (Frame Buster) -->
 <script>
   if (window.top !== window.self) {
     window.top.location.replace(window.self.location.href);
   }
 </script>
 
+<!-- LIBRERÍAS DE EDITOR Y SEGURIDAD -->
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -18,6 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
+<!-- FAVICON CON EMOJI -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧰</text></svg>">
 
 <style>
@@ -656,6 +659,16 @@
   .btn-sm { padding: 5px 10px; font-size: 11.5px; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  /* ===== ADMIN ROLES ===== */
+  .admin-only { display: none !important; }
+  body.is-admin .admin-only { display: inline-flex !important; }
+  body.is-admin th.admin-only, body.is-admin td.admin-only { display: table-cell !important; }
+  body.is-admin div.admin-only { display: flex !important; }
+  
+  /* NUEVO: Ocultar elementos en construcción */
+  .draft-item { display: none !important; }
+  body.is-admin .draft-item { display: block !important; }
+
   /* ===== MODAL ===== */
   .modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -729,12 +742,6 @@
   .ql-editor.ql-blank::before { color: rgba(154, 167, 180, 0.4) !important; font-style: normal; }
   .card .ql-editor, td .ql-editor { padding: 0; min-height: auto; overflow: visible; white-space: normal; }
   td .ql-editor p { margin: 0; padding: 0; }
-
-  /* ===== ADMIN ROLES ===== */
-  .admin-only { display: none !important; }
-  body.is-admin .admin-only { display: inline-flex !important; }
-  body.is-admin th.admin-only, body.is-admin td.admin-only { display: table-cell !important; }
-  body.is-admin div.admin-only { display: flex !important; }
 
   /* ===== TOAST NOTIFICATIONS ===== */
   #toast-container {
@@ -858,8 +865,10 @@
   </main>
 </div>
 
+<!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
 
+<!-- CONFIRM DIALOG -->
 <div id="confirmDialog">
   <div class="confirm-box">
     <h4 id="confirmTitle">¿Confirmar acción?</h4>
@@ -871,6 +880,7 @@
   </div>
 </div>
 
+<!-- EDIT MODAL -->
 <div id="editModal" class="modal-overlay" style="display: none;">
   <div class="modal-content" id="modalContentBox">
     <div class="modal-header">
@@ -885,6 +895,7 @@
   </div>
 </div>
 
+<!-- LOGIN MODAL -->
 <div id="loginModal" class="modal-overlay" style="display: none;">
   <div class="modal-content" style="width: 360px; max-width: 95%;">
     <div class="modal-header">
@@ -908,6 +919,7 @@
   </div>
 </div>
 
+<!-- MODAL LEGAL -->
 <div id="legalModal" class="modal-overlay" style="display: none;">
   <div class="modal-content" style="width: 500px; max-width: 95%;">
     <div class="modal-header">
@@ -917,11 +929,12 @@
     <div class="modal-body" style="font-size: 13px; color: var(--text-dim); line-height: 1.6;">
       <p><strong>Uso Interno:</strong> Este portal es una base de conocimiento de apoyo técnico. La información estructurada está destinada exclusivamente a agilizar los flujos de trabajo del equipo.</p>
       <p><strong>Privacidad:</strong> No se recopilan datos personales ni de navegación. Los correos proporcionados a través del buzón de sugerencias se utilizan única y exclusivamente para responder a las incidencias reportadas por los técnicos.</p>
-      <p><strong>Propiedad Intelectual:</strong> © 2026 E_GCB25. Todos los derechos reservados sobre la estructura, código y maquetación de la herramienta.</p>
+      <p><strong>Propiedad Intelectual:</strong> © 2026 Manual Técnico. Todos los derechos reservados sobre la estructura, código y maquetación de la herramienta.</p>
     </div>
   </div>
 </div>
 
+<!-- MODAL SUGERENCIAS -->
 <div id="feedbackModal" class="modal-overlay" style="display: none;">
   <div class="modal-content" style="width: 400px; max-width: 95%;">
     <div class="modal-header">
@@ -930,6 +943,7 @@
     </div>
     <div class="modal-body">
       <p style="font-size: 12.5px; color: var(--text-dim); margin-bottom: 14px;">¿Falta alguna herramienta? ¿Un enlace ha cambiado? Envía tu aviso para actualizar el portal.</p>
+      <!-- Formulario enlazado a Formspree -->
       <form action="https://formspree.io/f/xykvrzdo" method="POST">
         <div class="modal-field" style="margin-bottom: 12px;">
           <label>Tu Correo Electrónico</label>
@@ -974,7 +988,7 @@ function procesarImagenQuill(e, files, editorNode) {
         const img = new Image();
         img.onload = function() {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 2560; // ALTA RESOLUCIÓN MANTENIDA
+          const MAX_WIDTH = 2560; 
           const MAX_HEIGHT = 2560;
           let width = img.width;
           let height = img.height;
@@ -1007,7 +1021,7 @@ function procesarImagenQuill(e, files, editorNode) {
               quillInstance.deleteText(range.index, placeholder.length);
               toast("Error al subir la imagen.", 'error');
             }
-          }, 'image/jpeg', 0.95); // CALIDAD ALTA MANTENIDA
+          }, 'image/jpeg', 0.95);
         };
         img.src = event.target.result;
       };
@@ -1041,7 +1055,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// ACTIVAR FIREBASE APP CHECK
 const appCheck = initializeAppCheck(app, {
   provider: new ReCaptchaV3Provider('6Lc35wctAAAAAMeD-JXcLaxdQega16D1G5ElA8Xg'),
   isTokenAutoRefreshEnabled: true
@@ -1051,7 +1064,6 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
-// Variables encapsuladas en el módulo
 let LOCAL_DATA = {};
 let SEARCH_INDEX = [];
 let currentEditPage = null;
@@ -1322,9 +1334,14 @@ function renderSidebar() {
 
   for (const g in groups) {
     if (g === 'root') continue;
+    
+    // NUEVO: Comprobamos si la carpeta se llama EN CONSTRUCCION
+    const isDraft = (g.trim().toUpperCase() === 'EN CONSTRUCCION');
+    const draftClass = isDraft ? ' draft-item' : '';
+    
     const hasActive = groups[g].some(c => c.id === currentPage);
     html += `
-      <details class="nav-group" ${hasActive ? 'open' : ''}>
+      <details class="nav-group${draftClass}" ${hasActive ? 'open' : ''}>
         <summary><span class="nav-icon">📂</span> ${escapeHTML(g)}</summary>
         <div class="nav-group-items">
     `;
@@ -1446,12 +1463,16 @@ function renderPage(key) {
       </div>
     </div>
     <div class="home-grid page-enter" style="animation-delay:0.05s;">`;
+    
+    // NUEVO: Comprobamos si la tarjeta pertenece al grupo EN CONSTRUCCION
     for (const c of (page.cards || [])) {
-      html += `<div class="home-card" data-action="navGo" data-target="${c.id}"><div class="home-card-icon">${c.icon}</div><h3>${escapeHTML(c.title)}</h3><p>${escapeHTML(c.desc)}</p></div>`;
+      const isDraft = (c.group && c.group.trim().toUpperCase() === 'EN CONSTRUCCION');
+      const draftClass = isDraft ? ' draft-item' : '';
+      
+      html += `<div class="home-card${draftClass}" data-action="navGo" data-target="${c.id}"><div class="home-card-icon">${c.icon}</div><h3>${escapeHTML(c.title)}</h3><p>${escapeHTML(c.desc)}</p></div>`;
     }
     html += '</div>';
 
-    // NUEVO: Pie de página exclusivo de Inicio con los enlaces legales y de feedback
     html += `
     <footer class="home-footer page-enter" style="margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; animation-delay: 0.1s;">
       <div style="margin-bottom: 12px; display: flex; justify-content: center; gap: 20px; font-size: 12px;">
@@ -1459,14 +1480,13 @@ function renderPage(key) {
         <span style="color: var(--border-soft);">|</span>
         <span style="cursor:pointer; color: var(--text-dim); transition: color var(--transition);" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'" data-action="openFeedback">💡 Buzón de Sugerencias</span>
       </div>
-      <p style="font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace;">© 2026 E_GCB25</p>
+      <p style="font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace;">© 2026 Herramientas UNIR.</p>
     </footer>`;
 
     document.getElementById('content').innerHTML = html;
     return;
   }
 
-  // Breadcrumb for non-home pages
   html += `<div class="breadcrumb page-enter">
     <span data-action="navHome">Inicio</span>
     <span class="breadcrumb-sep">›</span>
@@ -1563,8 +1583,16 @@ function renderSearchResults(query) {
     groups[r.page].items.push(r);
   }
   let html = '';
+  
+  // NUEVO: Verificamos en el buscador si la página está EN CONSTRUCCION
+  const homeCards = LOCAL_DATA['home']?.cards || [];
+
   for (const [pageKey, group] of Object.entries(groups)) {
-    html += `<div class="result-section page-enter">
+    const parentCard = homeCards.find(c => c.id === pageKey);
+    const isDraft = (parentCard && parentCard.group && parentCard.group.trim().toUpperCase() === 'EN CONSTRUCCION');
+    const draftClass = isDraft ? ' draft-item' : '';
+
+    html += `<div class="result-section page-enter${draftClass}">
       <div class="section-title">
         <span class="result-tag section-title-left" data-action="navGo" data-target="${pageKey}">${escapeHTML(group.pageTitle)}</span>
         <span style="color:var(--text-muted);font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;font-family:inherit;">${group.items.length} coincidencia${group.items.length !== 1 ? 's' : ''}</span>
@@ -1652,7 +1680,6 @@ searchClear.addEventListener('click', () => {
   searchInput.focus();
 });
 
-// NUEVO: ESCAPE KEY CLOSES MODALS
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault();
@@ -2082,7 +2109,6 @@ document.addEventListener('click', (e) => {
     case 'moverFilaMenu': moverFilaMenu(btn, dir); break;
     case 'añadirFilaMenu': añadirFilaMenu(); break;
     
-    // NUEVO: Manejo de modales legales y de feedback
     case 'openLegal': document.getElementById('legalModal').style.display = 'flex'; break;
     case 'closeLegal': document.getElementById('legalModal').style.display = 'none'; break;
     case 'openFeedback': document.getElementById('feedbackModal').style.display = 'flex'; break;
