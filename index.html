@@ -62,31 +62,6 @@
     overflow: hidden;
   }
 
-  <!-- PANTALLA DE BLOQUEO (GATE) -->
-<div id="gateScreen" style="display: flex; position: fixed; inset: 0; background: var(--bg); z-index: 9999; align-items: center; justify-content: center; flex-direction: column;">
-  <div style="background: var(--bg-elev); padding: 40px; border-radius: var(--radius-lg); border: 1px solid var(--border); width: 400px; max-width: 90%; box-shadow: var(--shadow);">
-    <div style="text-align: center; margin-bottom: 24px;">
-      <div class="logo-mark" style="width: 54px; height: 42px; font-size: 15px; margin: 0 auto 12px;">UNIR</div>
-      <h2 style="color: var(--text); font-size: 19px; font-weight: 600;">Acceso al Manual</h2>
-    </div>
-    <div class="modal-field" style="margin-bottom: 16px;">
-      <label>Usuario (Correo)</label>
-      <input type="email" id="gateEmail" placeholder="usuario@madrid.org">
-    </div>
-    <div class="modal-field" style="margin-bottom: 24px;">
-      <label>Contraseña</label>
-      <input type="password" id="gatePassword" placeholder="••••••••">
-    </div>
-    <button id="gateLoginBtn" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px; font-size: 14px;">Entrar al Portal</button>
-    <div id="gateError" style="color: var(--danger); font-size: 12px; margin-top: 14px; text-align: center; display: none; font-weight: 500;"></div>
-
-    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-soft); text-align: center; font-size: 12.5px; color: var(--text-dim); font-family: 'DM Mono', monospace; line-height: 1.6;">
-      <strong>USUARIO:</strong> TECNICO<br>
-      <strong>CONTRASEÑA:</strong> CENTRALITA
-    </div>
-  </div>
-</div>
-
   /* ===== LAYOUT ===== */
   .app {
     display: grid;
@@ -846,7 +821,33 @@
 </head>
 <body>
 
-<div class="app" id="app">
+<!-- PANTALLA DE BLOQUEO (GATE) -->
+<div id="gateScreen" style="display: flex; position: fixed; inset: 0; background: var(--bg); z-index: 9999; align-items: center; justify-content: center; flex-direction: column;">
+  <div style="background: var(--bg-elev); padding: 40px; border-radius: var(--radius-lg); border: 1px solid var(--border); width: 400px; max-width: 90%; box-shadow: var(--shadow);">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div class="logo-mark" style="width: 54px; height: 42px; font-size: 15px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center;">UNIR</div>
+      <h2 style="color: var(--text); font-size: 19px; font-weight: 600;">Acceso al Manual</h2>
+    </div>
+    <div class="modal-field" style="margin-bottom: 16px;">
+      <label>Usuario (Correo)</label>
+      <input type="email" id="gateEmail" placeholder="usuario@madrid.org">
+    </div>
+    <div class="modal-field" style="margin-bottom: 24px;">
+      <label>Contraseña</label>
+      <input type="password" id="gatePassword" placeholder="••••••••">
+    </div>
+    <button id="gateLoginBtn" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px; font-size: 14px;">Entrar al Portal</button>
+    <div id="gateError" style="color: var(--danger); font-size: 12px; margin-top: 14px; text-align: center; display: none; font-weight: 500;"></div>
+
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-soft); text-align: center; font-size: 12.5px; color: var(--text-dim); font-family: 'DM Mono', monospace; line-height: 1.6;">
+      <strong>USUARIO:</strong> TECNICO<br>
+      <strong>CONTRASEÑA:</strong> CENTRALITA
+    </div>
+  </div>
+</div>
+
+<!-- APLICACIÓN PRINCIPAL (Oculta por defecto hasta que te logueas) -->
+<div class="app" id="app" style="display: none;">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="logo">
@@ -883,7 +884,7 @@
       </div>
       <div class="topbar-right">
         <button id="compactBtn" class="btn btn-ghost btn-sm" title="Alternar vista compacta de tablas">⇅ Compacto</button>
-        <button id="authBtn" class="btn btn-ghost btn-sm">🔒 Iniciar Sesión</button>
+        <button id="authBtn" class="btn btn-ghost btn-sm">🔒 Salir del Portal</button>
       </div>
     </div>
     <div class="content" id="content"></div>
@@ -916,30 +917,6 @@
     <div class="modal-footer">
       <button id="cancelModalBtn" class="btn btn-ghost btn-sm">Cancelar</button>
       <button id="saveModalBtn" class="btn btn-primary btn-sm">Guardar Cambios</button>
-    </div>
-  </div>
-</div>
-
-<!-- LOGIN MODAL -->
-<div id="loginModal" class="modal-overlay" style="display: none;">
-  <div class="modal-content" style="width: 360px; max-width: 95%;">
-    <div class="modal-header">
-      <h3>🔐 Acceso Administrador</h3>
-      <button id="closeLoginBtn" class="modal-close">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="modal-field">
-        <label>Correo Electrónico</label>
-        <input type="email" id="loginEmail" placeholder="usuario@madrid.org" autocomplete="email">
-      </div>
-      <div class="modal-field">
-        <label>Contraseña</label>
-        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
-      </div>
-      <div id="loginError" style="color: var(--danger); font-size: 12px; display: none; font-weight: 500; padding: 8px 10px; background: rgba(224,92,74,0.08); border-radius: var(--radius); border: 1px solid rgba(224,92,74,0.2);"></div>
-    </div>
-    <div class="modal-footer">
-      <button id="submitLoginBtn" class="btn btn-primary">Entrar al Sistema</button>
     </div>
   </div>
 </div>
@@ -1099,6 +1076,12 @@ let currentQuill = null;
 let currentTableQuills = {};
 
 /* ============================================================
+   CONFIGURACIÓN ADMIN
+   ============================================================ */
+// AQUÍ DEFINES TU CORREO DE ADMINISTRADOR
+const ADMIN_EMAIL = 'e_gcb25@madrid.org'; 
+
+/* ============================================================
    TOAST SYSTEM
    ============================================================ */
 function toast(msg, type = 'info', duration = 3000) {
@@ -1146,74 +1129,83 @@ document.getElementById('sidebarToggle').addEventListener('click', () => {
 });
 
 /* ============================================================
-   AUTENTICACIÓN
+   AUTENTICACIÓN - NUEVA LÓGICA DE GATEWAY
    ============================================================ */
-// Define aquí tu correo de administrador real
-const ADMIN_EMAIL = 'e_gcb25@madrid.org'; 
-
 onAuthStateChanged(auth, (user) => {
   const gateScreen = document.getElementById('gateScreen');
   const appWrap = document.getElementById('app');
 
   if (user) {
-    // Si la clave es correcta en Firebase, se levanta el telón
+    // Si la contraseña es correcta en Firebase, abrimos la puerta
     gateScreen.style.display = 'none';
     appWrap.style.display = 'grid';
 
-    // Comprobamos si el que ha entrado eres tú o el equipo
+    // Comprobamos si el que entra eres tú (Admin) o el equipo (Lector)
     if (user.email === ADMIN_EMAIL) {
       document.body.classList.add('is-admin');
-      document.getElementById('authBtn').innerHTML = '🔓 Cerrar Sesión Admin';
+      const authBtn = document.getElementById('authBtn');
+      authBtn.innerHTML = '🔓 Cerrar Sesión Admin';
+      authBtn.style.color = 'var(--danger)';
+      authBtn.style.borderColor = 'var(--danger)';
     } else {
       document.body.classList.remove('is-admin');
-      document.getElementById('authBtn').innerHTML = '🔓 Salir del Portal';
+      const authBtn = document.getElementById('authBtn');
+      authBtn.innerHTML = '🔓 Salir del Portal';
+      authBtn.style.color = '';
+      authBtn.style.borderColor = '';
     }
   } else {
-    // Si no hay sesión válida, cerramos todo a cal y canto
+    // Si no hay sesión válida, cerramos todo
     document.body.classList.remove('is-admin');
     appWrap.style.display = 'none';
     gateScreen.style.display = 'flex';
   }
 });
 
+// El botón de arriba a la derecha ahora solo sirve para salir
 document.getElementById('authBtn').addEventListener('click', () => {
-  if (auth.currentUser) {
-    confirmDialog('Cerrar sesión', '¿Estás seguro de que quieres salir del modo administrador?', 'Cerrar sesión').then(ok => {
-      if (ok) { signOut(auth); toast('Sesión cerrada', 'info'); }
-    });
-  } else {
-    document.getElementById('loginModal').style.display = 'flex';
+  confirmDialog('Cerrar sesión', '¿Estás seguro de que quieres salir del portal?', 'Cerrar sesión').then(ok => {
+    if (ok) { signOut(auth); toast('Sesión cerrada', 'info'); }
+  });
+});
+
+// Permitir entrar pulsando Enter en la contraseña
+document.getElementById('gatePassword').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('gateLoginBtn').click();
+});
+
+// Lógica del botón principal de Entrar
+document.getElementById('gateLoginBtn').addEventListener('click', async () => {
+  const emailInput = document.getElementById('gateEmail').value.trim();
+  const pass = document.getElementById('gatePassword').value;
+  const errorDiv = document.getElementById('gateError');
+  const btn = document.getElementById('gateLoginBtn');
+
+  if (!emailInput || !pass) {
+     errorDiv.textContent = '⚠️ Introduce el usuario y la contraseña.';
+     errorDiv.style.display = 'block';
+     return;
   }
-});
-
-document.getElementById('closeLoginBtn').addEventListener('click', () => {
-  document.getElementById('loginModal').style.display = 'none';
-});
-
-document.getElementById('loginPassword').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('submitLoginBtn').click();
-});
-
-document.getElementById('submitLoginBtn').addEventListener('click', async () => {
-  const email = document.getElementById('loginEmail').value;
-  const pass = document.getElementById('loginPassword').value;
-  const errorDiv = document.getElementById('loginError');
-  const btn = document.getElementById('submitLoginBtn');
 
   errorDiv.style.display = 'none';
   btn.textContent = 'Verificando...';
   btn.disabled = true;
 
   try {
-    await signInWithEmailAndPassword(auth, email, pass);
-    document.getElementById('loginModal').style.display = 'none';
-    document.getElementById('loginPassword').value = '';
-    toast('Bienvenido, administrador', 'success');
+    // Truco: Si escriben solo "TECNICO" (como dice el cartel), le añadimos el @
+    let finalEmail = emailInput;
+    if (emailInput.toUpperCase() === 'TECNICO') {
+       finalEmail = 'tecnico@madrid.org'; // Este es el que tienes que crear en Firebase
+    }
+
+    await signInWithEmailAndPassword(auth, finalEmail, pass);
+    document.getElementById('gatePassword').value = '';
+    toast('Acceso concedido', 'success');
   } catch (error) {
-    errorDiv.textContent = '⚠️ Credenciales incorrectas. Verifica tu correo y contraseña.';
+    errorDiv.textContent = '⚠️ Credenciales incorrectas. Verifica el usuario y la contraseña.';
     errorDiv.style.display = 'block';
   } finally {
-    btn.textContent = 'Entrar al Sistema';
+    btn.textContent = 'Entrar al Portal';
     btn.disabled = false;
   }
 });
@@ -1372,7 +1364,7 @@ function renderSidebar() {
   for (const g in groups) {
     if (g === 'root') continue;
     
-    // NUEVO: Comprobamos si la carpeta se llama EN CONSTRUCCION
+    // Comprobamos si la carpeta se llama EN CONSTRUCCION
     const isDraft = (g.trim().toUpperCase() === 'EN CONSTRUCCION');
     const draftClass = isDraft ? ' draft-item' : '';
     
@@ -1501,7 +1493,7 @@ function renderPage(key) {
     </div>
     <div class="home-grid page-enter" style="animation-delay:0.05s;">`;
     
-    // NUEVO: Comprobamos si la tarjeta pertenece al grupo EN CONSTRUCCION
+    // Comprobamos si la tarjeta pertenece al grupo EN CONSTRUCCION
     for (const c of (page.cards || [])) {
       const isDraft = (c.group && c.group.trim().toUpperCase() === 'EN CONSTRUCCION');
       const draftClass = isDraft ? ' draft-item' : '';
@@ -1621,7 +1613,6 @@ function renderSearchResults(query) {
   }
   let html = '';
   
-  // NUEVO: Verificamos en el buscador si la página está EN CONSTRUCCION
   const homeCards = LOCAL_DATA['home']?.cards || [];
 
   for (const [pageKey, group] of Object.entries(groups)) {
@@ -1731,7 +1722,6 @@ document.addEventListener('keydown', e => {
       searchInput.blur();
     }
     if (document.getElementById('editModal').style.display !== 'none') cerrarModal();
-    if (document.getElementById('loginModal').style.display !== 'none') document.getElementById('loginModal').style.display = 'none';
     if (document.getElementById('legalModal').style.display !== 'none') document.getElementById('legalModal').style.display = 'none';
     if (document.getElementById('feedbackModal').style.display !== 'none') document.getElementById('feedbackModal').style.display = 'none';
   }
