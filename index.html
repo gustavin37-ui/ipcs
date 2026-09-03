@@ -1249,9 +1249,14 @@ async function initApp() {
     setStatus('online', 'Conectado');
   } catch (error) {
     console.error("Error crítico inicializando:", error);
-    document.getElementById('content').innerHTML = '<div class="empty" style="color:var(--danger)">⚡ Error al conectar con Firebase. Verifica la conexión o las reglas de acceso.</div>';
+    document.getElementById('content').innerHTML = `<div class="empty" style="color:var(--danger)">
+      <p>⚡ Error al conectar con Firebase.</p>
+      <p style="font-size:12px;margin-top:8px;color:var(--text);font-family:monospace;"><b>Código:</b> ${error.code || 'Desconocido'}</p>
+      <p style="font-size:11px;margin-top:4px;color:var(--text-dim);font-family:monospace;"><b>Detalle:</b> ${error.message || error}</p>
+    </div>`;
     setStatus('offline', 'Sin conexión');
   }
+  
 }
 
 function setStatus(type, text) {
