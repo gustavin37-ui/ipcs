@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Herramientas UNIR - SOPORTEC</title>
+<title>SOPORTE UNIR - Manual Técnico</title>
 
 <!-- PROTECCIÓN CLICKJACKING (Frame Buster) -->
 <script>
@@ -390,13 +390,20 @@
   .breadcrumb span:hover { color: var(--accent); font-weight: 600; }
   .breadcrumb-sep { color: var(--border); }
 
-  /* ===== NUEVO DISEÑO SOPORTEC EN EL HOME ===== */
+  /* ===== DISEÑO CORPORATIVO EN EL HOME ===== */
   /* 1. Carrusel de Avisos Superior */
   .sp-carousel-wrap {
     background: #eaeaea;
-    padding: 14px 18px;
+    padding: 16px 18px 14px;
     border-radius: var(--radius-lg);
     margin-bottom: 24px;
+    position: relative;
+  }
+  .sp-carousel-admin-bar {
+    max-width: 1050px;
+    margin: 0 auto 8px;
+    display: flex;
+    justify-content: flex-end;
   }
   .sp-carousel-box {
     max-width: 1050px;
@@ -504,7 +511,7 @@
     font-family: inherit;
     outline: none;
   }
-  .sp-search-inner input:focus { border-color: var(--accent); }
+  .sp-search-inner input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   .sp-search-inner button {
     padding: 9px 20px;
     background: var(--accent);
@@ -517,7 +524,7 @@
   }
   .sp-search-inner button:hover { background: var(--accent-hover); }
 
-  /* 3. Agrupación Automática por Bloques (Estilo SharePoint) */
+  /* 3. Agrupación Automática por Bloques */
   .sp-groups-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
@@ -549,7 +556,7 @@
     align-content: start;
   }
 
-  /* 4. Botones Interactivos Desplegables Estilo SOPORTEC */
+  /* 4. Botones Interactivos Desplegables */
   .sp-pill {
     background: #ffffff;
     border-radius: 8px;
@@ -956,7 +963,7 @@
   <div style="background: var(--bg-elev); padding: 40px; border-radius: var(--radius-lg); border: 1px solid var(--border); border-top: 4px solid var(--accent); width: 400px; max-width: 90%; box-shadow: var(--shadow-red);">
     <div style="text-align: center; margin-bottom: 24px;">
       <div class="logo-mark" style="width: 54px; height: 42px; font-size: 15px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center;">UNIR</div>
-      <h2 style="color: var(--text); font-size: 19px; font-weight: 700;">Acceso al Manual SOPORTEC</h2>
+      <h2 style="color: var(--text); font-size: 19px; font-weight: 700;">Acceso a SOPORTE UNIR</h2>
     </div>
     <div class="modal-field" style="margin-bottom: 16px;">
       <label>Usuario (Correo)</label>
@@ -982,9 +989,9 @@
     <div class="sidebar-header">
       <div class="logo">
         <div class="logo-mark">UNIR</div>
-        <h1>Manual Técnico</h1>
+        <h1>SOPORTE UNIR</h1>
       </div>
-      <div class="subtitle">Guía Rápida SOPORTEC V3.0</div>
+      <div class="subtitle">Manual Técnico V3.0</div>
     </div>
 
     <div class="search-box">
@@ -1061,7 +1068,7 @@
     <div class="modal-body" style="font-size: 13px; color: var(--text-dim); line-height: 1.6;">
       <p><strong>Uso Interno:</strong> Este portal es una base de conocimiento de apoyo técnico. La información estructurada está destinada exclusivamente a agilizar los flujos de trabajo del equipo.</p>
       <p><strong>Privacidad:</strong> No se recopilan datos personales ni de navegación. Los correos proporcionados a través del buzón de sugerencias se utilizan única y exclusivamente para responder a las incidencias reportadas por los técnicos.</p>
-      <p><strong>Propiedad Intelectual:</strong> © 2026 Manual Técnico. Todos los derechos reservados sobre la estructura, código y maquetación de la herramienta.</p>
+      <p><strong>Propiedad Intelectual:</strong> © 2026 SOPORTE UNIR. Todos los derechos reservados sobre la estructura, código y maquetación de la herramienta.</p>
     </div>
   </div>
 </div>
@@ -1211,7 +1218,7 @@ let dataLoaded = false;
 
 const DEFAULT_BANNERS = [
   {
-    top: "ℹ️ AVISO DESTACADO SOPORTEC UNIR",
+    top: "ℹ️ AVISO DESTACADO SOPORTE UNIR",
     text: "Bienvenido a la nueva interfaz del Manual Técnico. Utiliza el buscador central o pasa el ratón sobre los botones rojos para desplegar su descripción.",
     btn: "Ver Cuadrante 2026",
     url: "https://gustavin37-ui.github.io/cuadrante-2026/"
@@ -1285,11 +1292,9 @@ onAuthStateChanged(auth, (user) => {
   const appWrap = document.getElementById('app');
 
   if (user) {
-    // Si la contraseña es correcta en Firebase, abrimos la puerta
     gateScreen.style.display = 'none';
     appWrap.style.display = 'grid';
 
-    // Comprobamos si el que entra eres tú (Admin) o el equipo (Lector)
     if (user.email === ADMIN_EMAIL) {
       document.body.classList.add('is-admin');
       const authBtn = document.getElementById('authBtn');
@@ -1308,21 +1313,18 @@ onAuthStateChanged(auth, (user) => {
       initApp();
     }
   } else {
-    // Si no hay sesión válida, cerramos todo
     document.body.classList.remove('is-admin');
     appWrap.style.display = 'none';
     gateScreen.style.display = 'flex';
   }
 });
 
-// El botón de arriba a la derecha ahora solo sirve para salir
 document.getElementById('authBtn').addEventListener('click', () => {
   confirmDialog('Cerrar sesión', '¿Estás seguro de que quieres salir del portal?', 'Cerrar sesión').then(ok => {
     if (ok) { signOut(auth); toast('Sesión cerrada', 'info'); }
   });
 });
 
-// Permitir entrar pulsando Enter en usuario o contraseña
 document.getElementById('gateEmail').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('gateLoginBtn').click();
 });
@@ -1330,7 +1332,6 @@ document.getElementById('gatePassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('gateLoginBtn').click();
 });
 
-// Lógica del botón principal de Entrar
 document.getElementById('gateLoginBtn').addEventListener('click', async () => {
   const emailInput = document.getElementById('gateEmail').value.trim();
   const pass = document.getElementById('gatePassword').value;
@@ -1348,7 +1349,6 @@ document.getElementById('gateLoginBtn').addEventListener('click', async () => {
   btn.disabled = true;
 
   try {
-    // Truco: Si escriben solo "TECNICO" (como dice el cartel), le añadimos el @
     let finalEmail = emailInput;
     if (emailInput.toUpperCase() === 'TECNICO') {
        finalEmail = 'tecnico@madrid.org';
@@ -1449,7 +1449,7 @@ function exportarTodoAPDF() {
   const printDiv = document.createElement('div');
   printDiv.id = 'print-container';
   printDiv.style.cssText = 'background: white; color: black; font-family: sans-serif; padding: 20px;';
-  let printHtml = `<div style="text-align:center; margin-bottom: 40px;"><h1 style="font-size:28px;margin-bottom:5px;">Guía de Herramientas UNIR</h1><p style="color:#666;">Exportación completa de procedimientos y enlaces</p></div>`;
+  let printHtml = `<div style="text-align:center; margin-bottom: 40px;"><h1 style="font-size:28px;margin-bottom:5px;">Guía de Herramientas SOPORTE UNIR</h1><p style="color:#666;">Exportación completa de procedimientos y enlaces</p></div>`;
   const order = (LOCAL_DATA['home']?.cards || []).map(c => c.id);
   order.forEach((key, index) => {
     const page = LOCAL_DATA[key];
@@ -1655,7 +1655,7 @@ function renderPage(key) {
   if (!page) return;
 
   document.getElementById('pageTitle').textContent = page.title || key;
-  document.getElementById('pageMeta').textContent = key === 'home' ? 'Panel de Documentación SOPORTEC' : (page.meta || '');
+  document.getElementById('pageMeta').textContent = key === 'home' ? 'Panel de Documentación SOPORTE UNIR' : (page.meta || '');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.target === key));
 
   let html = '';
@@ -1664,22 +1664,25 @@ function renderPage(key) {
     const banners = (page.banners && page.banners.length) ? page.banners : DEFAULT_BANNERS;
     if (currentSlideIdx >= banners.length) currentSlideIdx = 0;
 
-    // 1. CARRUSEL SUPERIOR DE AVISOS
+    // 1. CARRUSEL SUPERIOR DE AVISOS CON BOTÓN DE EDICIÓN DIRECTO
     html += `<div class="sp-carousel-wrap page-enter">
+      <div class="sp-carousel-admin-bar admin-only">
+        <button class="btn btn-primary btn-sm" data-action="gestionarBanners" style="box-shadow: var(--shadow-sm);">✏️ Editar Noticias del Banner</button>
+      </div>
       <div class="sp-carousel-box">`;
     banners.forEach((b, idx) => {
       html += `
         <div class="sp-slide ${idx === currentSlideIdx ? 'active' : ''}">
-          <div class="sp-slide-top">${escapeHTML(b.top || 'AVISO IMPORTANTE')}</div>
+          <div class="sp-slide-top">${escapeHTML((b.top || 'AVISO IMPORTANTE').replace(/SOPORTEC/gi, 'SOPORTE UNIR'))}</div>
           <div class="sp-slide-body">
-            <div class="sp-slide-text">${escapeHTML(b.text || '')}</div>
+            <div class="sp-slide-text">${escapeHTML((b.text || '').replace(/SOPORTEC/gi, 'SOPORTE UNIR'))}</div>
             ${b.btn && b.url ? `<a class="sp-slide-btn" href="${escapeHTML(b.url)}" target="_blank">${escapeHTML(b.btn)}</a>` : ''}
           </div>
         </div>`;
     });
     html += `</div>
       <div class="sp-dots">
-        ${banners.map((_, idx) => `<button class="sp-dot ${idx === currentSlideIdx ? 'active' : ''}" data-action="goSlide" data-idx="${idx}"></button>`).join('')}
+        ${banners.map((_, idx) => `<button class="sp-dot ${idx === currentSlideIdx ? 'active' : ''}" data-action="goSlide" data-idx="${idx}" title="Ver noticia ${idx + 1}"></button>`).join('')}
       </div>
     </div>`;
 
@@ -1689,18 +1692,21 @@ function renderPage(key) {
       <div class="sp-search-title">
         <span>Búsqueda de documentación</span>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="admin-only btn btn-secondary btn-sm" data-action="gestionarBanners">📢 Editar Avisos</button>
+          <button class="admin-only btn btn-secondary btn-sm" data-action="gestionarBanners">📢 Configurar Banner</button>
           <button class="admin-only btn btn-secondary btn-sm" data-action="gestionarMenu">⚙️ Administrar Categorías</button>
           <button class="btn btn-info btn-sm" data-action="exportarTodoAPDF">📄 Exportar PDF</button>
         </div>
       </div>
       <div class="sp-search-box">
         <div class="sp-search-inner">
-          <input type="text" id="homeCentralSearch" placeholder="Buscar en SOPORTEC UNIR (procedimientos, aplicaciones, teléfonos, plantillas)..." autocomplete="off">
+          <input type="text" id="homeCentralSearch" placeholder="Escribe lo que buscas en SOPORTE UNIR y pulsa Enter o Buscar..." autocomplete="off">
           <button type="button" data-action="ejecutarBusquedaCentral">Buscar</button>
         </div>
       </div>
     </div>`;
+
+    // CONTENEDOR EXCLUSIVO PARA RESULTADOS O BLOQUES DE INICIO
+    html += `<div id="homeDynamicZone">`;
 
     // 3. AGRUPACIÓN AUTOMÁTICA POR BLOQUES + PÍLDORAS INTERACTIVAS
     const grouped = {};
@@ -1737,7 +1743,7 @@ function renderPage(key) {
       }
       html += `</div></div>`;
     }
-    html += `</div>`;
+    html += `</div></div>`;
 
     html += `
     <footer class="home-footer page-enter" style="margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; animation-delay: 0.1s;">
@@ -1746,18 +1752,21 @@ function renderPage(key) {
         <span style="color: var(--border);">|</span>
         <span style="cursor:pointer; color: var(--text-dim); transition: color var(--transition);" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'" data-action="openFeedback">💡 Buzón de Sugerencias</span>
       </div>
-      <p style="font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace;">© 2026 Herramientas UNIR.</p>
+      <p style="font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace;">© 2026 SOPORTE UNIR.</p>
     </footer>`;
 
     document.getElementById('content').innerHTML = html;
 
+    // El buscador central ahora permite escribir tranquilamente y busca al pulsar Enter o en el botón Buscar
     const homeSearchInp = document.getElementById('homeCentralSearch');
     if (homeSearchInp) {
-      homeSearchInp.addEventListener('input', (e) => {
-        const val = e.target.value;
-        document.getElementById('searchInput').value = val;
-        document.getElementById('searchClear').classList.toggle('visible', val.length > 0);
-        if (val.trim()) renderSearchResults(val);
+      homeSearchInp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const val = homeSearchInp.value.trim();
+          if (val) renderSearchResults(val, true);
+          else renderPage('home');
+        }
       });
     }
 
@@ -1845,17 +1854,20 @@ function buildSearchIndex() {
   }
 }
 
-function renderSearchResults(query) {
+function renderSearchResults(query, inHomeZone = false) {
   const term = query.trim().toLowerCase();
   if (!term) { renderPage(currentPage || 'home'); return; }
   const results = SEARCH_INDEX.filter(r => r.text.includes(term));
   document.getElementById('pageTitle').textContent = `Búsqueda: "${query}"`;
   document.getElementById('pageMeta').textContent = `${results.length} resultado${results.length !== 1 ? 's' : ''}`;
   
-  const backHtml = `<div class="breadcrumb"><span data-action="navHome">← Volver al Inicio</span></div>`;
+  const backHtml = `<div class="breadcrumb"><span data-action="navHome">← Limpiar búsqueda y volver a todas las categorías</span></div>`;
+  const targetContainer = (inHomeZone && document.getElementById('homeDynamicZone')) 
+    ? document.getElementById('homeDynamicZone') 
+    : document.getElementById('content');
 
   if (!results.length) {
-    document.getElementById('content').innerHTML = backHtml + '<div class="empty">Sin resultados para esa búsqueda.</div>';
+    targetContainer.innerHTML = backHtml + '<div class="empty">Sin resultados para esa búsqueda.</div>';
     return;
   }
   const groups = {};
@@ -1910,7 +1922,7 @@ function renderSearchResults(query) {
     }
     html += '</div>';
   }
-  document.getElementById('content').innerHTML = html;
+  targetContainer.innerHTML = html;
 }
 
 function highlightInLinkedHtml(html, term) {
@@ -1948,9 +1960,9 @@ searchInput.addEventListener('input', e => {
   searchClear.classList.toggle('visible', q.length > 0);
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
-    if (q.trim()) renderSearchResults(q);
+    if (q.trim()) renderSearchResults(q, false);
     else renderPage(currentPage);
-  }, 140);
+  }, 220);
 });
 
 searchClear.addEventListener('click', () => {
@@ -1963,8 +1975,14 @@ searchClear.addEventListener('click', () => {
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault();
-    searchInput.focus();
-    searchInput.select();
+    const hc = document.getElementById('homeCentralSearch');
+    if (currentPage === 'home' && hc) {
+      hc.focus();
+      hc.select();
+    } else {
+      searchInput.focus();
+      searchInput.select();
+    }
   }
   if (e.key === 'Escape') {
     if (document.activeElement === searchInput) {
@@ -2090,38 +2108,73 @@ function cerrarModal() {
 document.getElementById('closeModalBtn').addEventListener('click', cerrarModal);
 document.getElementById('cancelModalBtn').addEventListener('click', cerrarModal);
 
-// ---- GESTOR DE BANNERS DEL CARRUSEL ----
+// ---- GESTOR DE BANNERS DEL CARRUSEL (MÉTODO SENCILLO) ----
 function gestionarBanners() {
   currentEditType = 'banner_manager';
-  document.getElementById('modalTitle').textContent = '📢 Administrar Carrusel de Avisos Superior';
+  document.getElementById('modalTitle').textContent = '📢 Editar Noticias del Banner Superior';
   const banners = LOCAL_DATA['home'].banners || DEFAULT_BANNERS;
-  let html = '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Añade o edita los avisos que rotan en la parte superior del Inicio.</div>';
-  html += '<div id="bannerEditorList" style="display:flex;flex-direction:column;gap:10px;">';
-  banners.forEach(b => {
-    html += `<div class="banner-edit-row" style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;background:var(--bg-card);padding:10px;border-radius:var(--radius);border:1px solid var(--border);align-items:center;">
-      <input type="text" class="b-top" value="${escapeHTML(b.top || '')}" placeholder="Encabezado rojo">
-      <input type="text" class="b-btn" value="${escapeHTML(b.btn || '')}" placeholder="Texto del botón (opcional)">
-      <button data-action="removeParent" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:16px;">🗑️</button>
-      <input type="text" class="b-text" value="${escapeHTML(b.text || '')}" placeholder="Texto principal del aviso..." style="grid-column:1/3;">
-      <input type="text" class="b-url" value="${escapeHTML(b.url || '')}" placeholder="Enlace URL https://... (opcional)" style="grid-column:1/3;">
+  let html = '<div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">Aquí puedes modificar los avisos que rotan arriba en el Inicio, añadir nuevos o borrar los antiguos con el icono de la papelera:</div>';
+  html += '<div id="bannerEditorList" style="display:flex;flex-direction:column;gap:14px;">';
+  banners.forEach((b, i) => {
+    html += `<div class="banner-edit-row" style="background:var(--bg-card);padding:14px;border-radius:var(--radius);border:1px solid var(--border);display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:6px;">
+        <strong style="color:var(--accent);font-size:12px;font-family:monospace;">NOTICIA #${i + 1}</strong>
+        <button data-action="removeBannerRow" class="btn btn-danger btn-sm" style="padding:3px 8px;">🗑️ Eliminar noticia</button>
+      </div>
+      <div class="modal-field">
+        <label>1. Título de la Franja Roja Superior</label>
+        <input type="text" class="b-top" value="${escapeHTML((b.top || '').replace(/SOPORTEC/gi, 'SOPORTE UNIR'))}" placeholder="Ej: ℹ️ AVISO IMPORTANTE SOPORTE UNIR">
+      </div>
+      <div class="modal-field">
+        <label>2. Mensaje o Cuerpo de la Noticia</label>
+        <textarea class="b-text" rows="2" placeholder="Escribe aquí el aviso que verán los técnicos...">${escapeHTML((b.text || '').replace(/SOPORTEC/gi, 'SOPORTE UNIR'))}</textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:10px;">
+        <div class="modal-field">
+          <label>3. Texto del Botón (Opcional)</label>
+          <input type="text" class="b-btn" value="${escapeHTML(b.btn || '')}" placeholder="Ej: Más información">
+        </div>
+        <div class="modal-field">
+          <label>4. Enlace URL al pulsar el botón (Opcional)</label>
+          <input type="text" class="b-url" value="${escapeHTML(b.url || '')}" placeholder="https://...">
+        </div>
+      </div>
     </div>`;
   });
-  html += '</div><button data-action="añadirFilaBanner" class="btn btn-ghost btn-sm" style="margin-top:12px;border-style:dashed;">+ Añadir Nuevo Aviso</button>';
+  html += '</div><button data-action="añadirFilaBanner" class="btn btn-secondary" style="margin-top:12px;width:100%;justify-content:center;border-style:dashed;">➕ Añadir Otra Noticia al Carrusel</button>';
   document.getElementById('modalBody').innerHTML = html;
   abrirModal('bulk');
 }
 
 function añadirFilaBanner() {
   const container = document.getElementById('bannerEditorList');
+  const count = container.querySelectorAll('.banner-edit-row').length + 1;
   const div = document.createElement('div');
   div.className = 'banner-edit-row';
-  div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:8px;background:var(--bg-card);padding:10px;border-radius:var(--radius);border:1px solid var(--border);align-items:center;';
+  div.style.cssText = 'background:var(--bg-card);padding:14px;border-radius:var(--radius);border:1px solid var(--border);display:flex;flex-direction:column;gap:10px;';
   div.innerHTML = `
-    <input type="text" class="b-top" placeholder="Encabezado rojo">
-    <input type="text" class="b-btn" placeholder="Texto del botón (opcional)">
-    <button data-action="removeParent" style="color:var(--danger);background:transparent;border:none;cursor:pointer;font-size:16px;">🗑️</button>
-    <input type="text" class="b-text" placeholder="Texto principal del aviso..." style="grid-column:1/3;">
-    <input type="text" class="b-url" placeholder="Enlace URL https://... (opcional)" style="grid-column:1/3;">`;
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:6px;">
+      <strong style="color:var(--success);font-size:12px;font-family:monospace;">NUEVA NOTICIA #${count}</strong>
+      <button data-action="removeBannerRow" class="btn btn-danger btn-sm" style="padding:3px 8px;">🗑️ Eliminar noticia</button>
+    </div>
+    <div class="modal-field">
+      <label>1. Título de la Franja Roja Superior</label>
+      <input type="text" class="b-top" placeholder="Ej: 📌 NUEVO PROCEDIMIENTO">
+    </div>
+    <div class="modal-field">
+      <label>2. Mensaje o Cuerpo de la Noticia</label>
+      <textarea class="b-text" rows="2" placeholder="Escribe aquí el aviso que verán los técnicos..."></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:10px;">
+      <div class="modal-field">
+        <label>3. Texto del Botón (Opcional)</label>
+        <input type="text" class="b-btn" placeholder="Ej: Ver documento">
+      </div>
+      <div class="modal-field">
+        <label>4. Enlace URL al pulsar el botón (Opcional)</label>
+        <input type="text" class="b-url" placeholder="https://...">
+      </div>
+    </div>`;
   container.appendChild(div);
 }
 
@@ -2391,7 +2444,13 @@ document.addEventListener('click', (e) => {
   const targetId = btn.dataset.target;
 
   switch(action) {
-    case 'navHome': currentPage = 'home'; renderPage('home'); renderSidebar(); break;
+    case 'navHome': 
+      currentPage = 'home'; 
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchClear').classList.remove('visible');
+      renderPage('home'); 
+      renderSidebar(); 
+      break;
     case 'navGo': 
       currentPage = targetId; 
       document.getElementById('searchInput').value = '';
@@ -2406,11 +2465,12 @@ document.addEventListener('click', (e) => {
       break;
     case 'ejecutarBusquedaCentral':
       const hc = document.getElementById('homeCentralSearch');
-      if (hc && hc.value.trim()) renderSearchResults(hc.value);
-      else if (hc) hc.focus();
+      if (hc && hc.value.trim()) renderSearchResults(hc.value, true);
+      else if (hc) { renderPage('home'); hc.focus(); }
       break;
     case 'gestionarBanners': gestionarBanners(); break;
     case 'añadirFilaBanner': añadirFilaBanner(); break;
+    case 'removeBannerRow': btn.closest('.banner-edit-row').remove(); break;
     case 'exportarTodoAPDF': exportarTodoAPDF(); break;
     case 'gestionarMenu': gestionarMenu(); break;
     case 'añadirSeccionNueva': añadirSeccionNueva(pageKey); break;
